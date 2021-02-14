@@ -246,6 +246,14 @@ namespace DataTable
         private void _row_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             // Need to add the new column to the header
+            // Need to add the new column to the header
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                foreach (DataRow row in e.NewItems)
+                {
+                    Create(_path, _name, row);
+                }
+            }
         }
 
         private void Add(string path, string filename, DataColumn column)
@@ -253,14 +261,14 @@ namespace DataTable
             string filenamePath = System.IO.Path.Combine(path, filename);
             lock (_lockObject)
             {   
-                BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);
-                _size = binaryReader.ReadUInt16();
-                _pointer = binaryReader.ReadUInt16();
-                _data = binaryReader.ReadUInt16();
-                _records = binaryReader.ReadByte();
-                binaryReader.Close();
-                binaryReader.Dispose();
+                //BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                //binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);
+                //_size = binaryReader.ReadUInt16();
+                //_pointer = binaryReader.ReadUInt16();
+                //_data = binaryReader.ReadUInt16();
+                //_records = binaryReader.ReadByte();
+                //binaryReader.Close();
+                //binaryReader.Dispose();
 
                 // need to calculate the spece needed
                 //
@@ -274,28 +282,6 @@ namespace DataTable
                 // ...
                 // The structure repeats
                 //
-                // Typecode
-                /*
-                 *  Boolean	    3	A simple type representing Boolean values of true or false.
-                    Byte	    6	An integral type representing unsigned 8-bit integers with values between 0 and 255.
-                    Char	    4	An integral type representing unsigned 16-bit integers with values between 0 and 65535. The set of possible values for the Char type corresponds to the Unicode character set.
-                    DateTime	16  A type representing a date and time value.
-                    DBNull	    2   A database null (column) value.
-                    Decimal	    15  A simple type representing values ranging from 1.0 x 10 -28 to approximately 7.9 x 10 28 with 28-29 significant digits.
-                    Double	    14  A floating point type representing values ranging from approximately 5.0 x 10 -324 to 1.7 x 10 308 with a precision of 15-16 digits.
-                    Empty	    0   A null reference.
-                    Int16	    7   An integral type representing signed 16-bit integers with values between -32768 and 32767.
-                    Int32	    9	An integral type representing signed 32-bit integers with values between -2147483648 and 2147483647.
-                    Int64	    11  An integral type representing signed 64-bit integers with values between -9223372036854775808 and 9223372036854775807.
-                    Object	    1   A general type representing any reference or value type not explicitly represented by another TypeCode.
-                    SByte	    5   An integral type representing signed 8-bit integers with values between -128 and 127.
-                    Single	    13  A floating point type representing values ranging from approximately 1.5 x 10 -45 to 3.4 x 10 38 with a precision of 7 digits.
-                    String	    18  A sealed class type representing Unicode character strings.
-                    UInt16	    8   An integral type representing unsigned 16-bit integers with values between 0 and 65535.
-                    UInt32	    10  An integral type representing unsigned 32-bit integers with values between 0 and 4294967295.
-                    UInt64	    12  An integral type representing unsigned 64-bit integers with values between 0 and 18446744073709551615.
-                 */
-
 
                 TypeCode typeCode = Type.GetTypeCode(column.DataType);
                 int offset = 0;
@@ -426,7 +412,7 @@ namespace DataTable
         //        indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
         //        UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
         //        binaryReader.BaseStream.Seek(pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
-                
+
         //        byte flag = binaryReader.ReadByte();
         //        object key = null;
         //        if (keyParameterType == typeof(int))
@@ -464,102 +450,112 @@ namespace DataTable
         //    return (keyValue);
         //}
 
-    //    private void Write(string path, string filename, int index, object item)
-    //    {
-    //        lock (_lockObject)
-    //        {
-    //            Type keyParameterType = typeof(TKey);
-    //            Type valueParameterType = typeof(TValue);
+        private void Write(string path, string filename, DataRow row)
+        {
+            string filenamePath = System.IO.Path.Combine(path, filename);
+            lock (_lockObject)
+            {
+                // Write the data
 
-    //            string filenamePath = System.IO.Path.Combine(path, filename);
+                
+            }
+        }
 
-    //            // Write the data
+        private void Create(string path, string filename, DataRow row)
+        {
+            string filenamePath = System.IO.Path.Combine(path, filename);
+            lock (_lockObject)
+            {
+                // append the new pointer the new index file
 
-    //            // Appending will only work if the file is deleated and the updates start again
-    //            // Not sure if this is the best approach.
-    //            // With strings might have to do the write first and then update the pointer.
-
-    //            BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".bin", FileMode.Append));
-
-    //            int offset = 0;
-    //            offset = offset + 1;    // Including the flag
-
-    //            if (keyParameterType == typeof(int))
-    //            {
-    //                offset = offset + 4;
-    //            }
-    //            else if (keyParameterType == typeof(string))
-    //            {
-    //                int l = (UInt16)Convert.ToString(item).Length;
-    //                offset = offset + LEB128.Size(l) + l; 			// Includes the byte length parameter
-    //                                                                // ** need to watch this as can be 2 bytes if length is > 127 characters
-    //                                                                // ** https://en.wikipedia.org/wiki/LEB128
-    //            }
-
-    //            if (valueParameterType == typeof(int))
-    //            {
-    //                offset = offset + 4;
-    //            }
-    //            else if (valueParameterType == typeof(string))
-    //            {
-    //                int l = (UInt16)Convert.ToString(item).Length;
-    //                offset = offset + LEB128.Size(l) + l;           // Includes the byte length parameter
-    //                                                                // ** need to watch this as can be 2 bytes if length is > 127 characters
-    //                                                                // ** https://en.wikipedia.org/wiki/LEB128
-
-    //                string s = Convert.ToString(item);
-    //                binaryWriter.Write(s);
-    //            }
-
-    //            byte flag = 0;
-    //            binaryWriter.Write(flag);
-    //            if (keyParameterType == typeof(string))
-    //            {
-    //                string s = Convert.ToString(item);
-    //                binaryWriter.Write(s);
-    //            }
+                BinaryWriter indexWriter = new BinaryWriter(new FileStream(filenamePath + ".idx", FileMode.Append));
+                indexWriter.Write(_pointer);  // Write the pointer
 
 
-    //            binaryWriter.Close();
+                int offset = 0;
+                offset = offset + 1;    // Including the flag
+                for (int i = 0; i < row.ItemArray.Length; i++)
+                {
+                    object data = row.ItemArray[i];
+                    DataColumn dataColumn = _columns[i];
+                    Type dataType = dataColumn.DataType;
 
-    //            // Write the header
+                    if (dataType == typeof(int))
+                    {
+                        offset = offset + 4;
+                    }
+                    else if (dataType == typeof(string))
+                    {
+                        int length = dataColumn.MaxLength;
+                        if (length < 0)
+                        {
+                            length = Convert.ToString(data).Length;
+                        }
+                        offset = offset + LEB128.Size(length) + length;     // Includes the byte length parameter
+                                                                            // ** need to watch this as can be 2 bytes if length is > 127 characters
+                                                                            // ** https://en.wikipedia.org/wiki/LEB128
+                        
+                    }
+                }
 
-    //            binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".bin", FileMode.OpenOrCreate));
-    //            binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
-    //            _size++;
-    //            binaryWriter.Write(_size);                  // Write the size
-    //            binaryWriter.Write((UInt16)(_pointer + offset));               // Write the pointer
-    //            binaryWriter.Close();
+                // Update the index length
 
-    //            // need to insert the ponter as a new entry in the index
+                indexWriter.Write((UInt16)offset);  // Write the length
+                indexWriter.Close();
 
-    //            FileStream stream = new FileStream(filenamePath + ".idx", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-    //            BinaryReader indexReader = new BinaryReader(stream);
-    //            BinaryWriter indexWriter = new BinaryWriter(stream);
+                // Write the header
 
-    //            UInt16 position;
-    //            for (int counter = _size - 1; counter > index; counter--)
-    //            {
-    //                position = (UInt16)((counter - 1) * 4);
-    //                indexReader.BaseStream.Seek(position, SeekOrigin.Begin);       // Move to location of the index
-    //                UInt16 pointer = indexReader.ReadUInt16();                              // Read the pointer from the index file
-    //                UInt16 off = indexReader.ReadUInt16();
-    //                position = (UInt16)(counter * 4);
-    //                indexWriter.Seek(counter * 4, SeekOrigin.Begin);                        // Move to location of the index
-    //                indexWriter.Write(pointer);
-    //                indexWriter.Write(off);
-    //            }
-    //            position = (UInt16)(index * 4);
-    //            indexWriter.Seek(position, SeekOrigin.Begin);                        // Move to location of the index
-    //            indexWriter.Write(_pointer);
-    //            indexWriter.Write((UInt16)offset);
-    //            indexWriter.Close();
-    //            indexReader.Close();
-    //            stream.Close();
-    //        }
-    //    }
+                BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
+                binaryWriter.Seek(0, SeekOrigin.Begin);                         // Move to start of the file
+                _size++;                                                        // Update the size
+                binaryWriter.Write(_size);                                      // Write the size
+                binaryWriter.Write((UInt16)(_pointer + offset));                // Write the pointer
+                binaryWriter.Close();
 
-    #endregion
+                // Write the data
+
+                // Appending will only work if the file is deleted and the updates start again
+                // Not sure if this is the best approach.
+                // Need to update the 
+
+                binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Append));
+
+                for (int i = 0; i < row.ItemArray.Length; i++)
+                {
+                    object data = row.ItemArray[i];
+                    DataColumn dataColumn = _columns[i];
+                    Type dataType = dataColumn.DataType;
+
+                    if (dataType == typeof(int))
+                    {
+                        binaryWriter.Write((int)data);
+                    }
+                    else if (dataType == typeof(string))
+                    {
+                        string text = Convert.ToString(data);
+
+                        if (dataColumn.MaxLength < 0)
+                        {
+                            binaryWriter.Write(text);
+                        }
+                        else
+                        {
+                            if (text.Length > dataColumn.MaxLength)
+                            {
+                                text = text.Substring(0, dataColumn.MaxLength);
+                            }
+                            else
+                            {
+                                text = text.PadRight(dataColumn.MaxLength, '\0');
+                            }
+                            binaryWriter.Write(text);
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 
     public static class LEB128

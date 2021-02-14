@@ -23,6 +23,7 @@ namespace DataTable
             System.Data.DataRow dr = dt.NewRow();
             dr["id"] = 1;
             dr["name"] = "jeremy";
+            Console.WriteLine("Count=" + dr.ItemArray.Length);
             dt.Rows.Add(dr);
 
             foreach (System.Data.DataRow r in dt.Rows)
@@ -50,6 +51,7 @@ namespace DataTable
             DataRow pdr = pdt.NewRow();
             pdr["id"] = 1;
             pdr["name"] = "jeremy";
+            Console.WriteLine("Count=" + pdr.ItemArray.Length);
             pdt.Rows.Add(pdr);
 
             foreach (DataRow r in pdt.Rows)

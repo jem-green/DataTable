@@ -9,7 +9,7 @@ namespace DataTable
         #region Variables
         private string _name;
         private Type _type;
-        private int _length = 0;   // Default no maximum
+        private int _length = -1;       // Default no maximum
         private bool _primary = false;
         
         #endregion
