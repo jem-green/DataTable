@@ -37,22 +37,32 @@ namespace DataTable
 
             Console.WriteLine("----------");
 
-            PersistentDataTable pdt = new PersistentDataTable(true);
+            PersistentDataTable pdt = new PersistentDataTable(false);
 
-            DataColumn pdc = new DataColumn("id");
-            pdc.DataType = System.Type.GetType("System.Int32");
-            //pdc.Unique = true;
-            pdt.Columns.Add(pdc);
+            Datacolumn pdc;
+            try
+            {
+                pdc = new Datacolumn("id");
+                pdc.DataType = System.Type.GetType("System.Int32");
+                //pdc.Unique = true;
+                pdt.Columns.Add(pdc);
+            }
+            catch { };
 
-            pdc = new DataColumn("name");
-            pdc.DataType = System.Type.GetType("System.String");
-            pdt.Columns.Add(pdc);
+            try
+            {
+                pdc = new Datacolumn("name");
+                pdc.DataType = System.Type.GetType("System.String");
+                pdt.Columns.Add(pdc);
+            }
+            catch { };
 
             DataRow pdr = pdt.NewRow();
             pdr["id"] = 1;
             pdr["name"] = "jeremy";
-            Console.WriteLine("Count=" + pdr.ItemArray.Length);
+            Console.WriteLine("Fields=" + pdr.ItemArray.Length);
             pdt.Rows.Add(pdr);
+            Console.WriteLine("Count=" + pdt.Rows.Count);
 
             foreach (DataRow r in pdt.Rows)
             {

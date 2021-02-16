@@ -76,7 +76,7 @@ namespace DataTable
         private string _path = "";
         private string _name = "PersistentDataTable";
 
-        private ObservableCollection<DataColumn> _columns;
+        private DataColumnCollection _columns;
         private ObservableCollection<DataRow> _rows;
 
         private readonly object _lockObject = new Object();
@@ -92,58 +92,59 @@ namespace DataTable
 
         public PersistentDataTable()
         {
-            _columns = new ObservableCollection<DataColumn>();
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _columns = new DataColumnCollection();
             _rows = new ObservableCollection<DataRow>();
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
             Open(_path, _name, false);
+            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
+
         }
 
         public PersistentDataTable(bool reset)
         {
-            _columns = new ObservableCollection<DataColumn>();
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _columns = new DataColumnCollection();
             _rows = new ObservableCollection<DataRow>();
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
             Open(_path, _name, reset);
+            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string name)
         {
             _name = name;
-            _columns = new ObservableCollection<DataColumn>();
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _columns = new DataColumnCollection();
             _rows = new ObservableCollection<DataRow>();
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
             Open(_path, _name, false);
+            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string path, string filename)
         {
             _path = path;
             _name = filename;
-            _columns = new ObservableCollection<DataColumn>();
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _columns = new DataColumnCollection();
             _rows = new ObservableCollection<DataRow>();
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
             Open(_path, _name, false);
+            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string path, string filename, bool reset)
         {
             _path = path;
             _name = filename;
-            _columns = new ObservableCollection<DataColumn>();
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _columns = new DataColumnCollection();
             _rows = new ObservableCollection<DataRow>();
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
             Open(_path, _name, reset);
+            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         #endregion
         #region Properties
 
-        public ObservableCollection<DataColumn> Columns
+        public DataColumnCollection Columns
         {
             set
             {
@@ -197,7 +198,7 @@ namespace DataTable
             for (int i = 0; i < _columns.Count; i++)
             {
                 // Set the default value for the type
-                DataColumn column = _columns[i];
+                Datacolumn column = _columns[i];
                 if (column.DataType.IsValueType == true)
                 {
                     dr.ItemArray[i] = Activator.CreateInstance(column.DataType);
@@ -236,7 +237,7 @@ namespace DataTable
             // Need to add the new column to the header
             if (e.Action == NotifyCollectionChangedAction.Add)
             {
-                foreach(DataColumn column in e.NewItems)
+                foreach(Datacolumn column in e.NewItems)
                 {
                     Add(_path, _name, column);
                 }
@@ -256,7 +257,7 @@ namespace DataTable
             }
         }
 
-        private void Add(string path, string filename, DataColumn column)
+        private void Add(string path, string filename, Datacolumn column)
         {
             string filenamePath = System.IO.Path.Combine(path, filename);
             lock (_lockObject)
@@ -333,24 +334,24 @@ namespace DataTable
                 // Assume we only need to read the data and not the index
 
                 BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);          // Move to position of the current
-                _size = (UInt16)binaryReader.ReadInt16();                   // Read in the data pointer
-                _pointer = (UInt16)binaryReader.ReadInt16();                // Read in the current record
-                _data = (UInt16)binaryReader.ReadInt16();                   // Read in the data pointer
-                _records = binaryReader.ReadByte();
+                binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);      // Move to position of the current
+                _size = binaryReader.ReadUInt16();                      // Read in the data pointer
+                _pointer = binaryReader.ReadUInt16();                   // Read in the current record
+                _data = binaryReader.ReadUInt16();                      // Read in the data pointer
+                _records = binaryReader.ReadByte();                     // Read in the number of records
 
                 _columns.Clear();
                 for (int count = 0; count < _records; count++)
                 {
                     TypeCode typeCode = (TypeCode)binaryReader.ReadByte();  // Read the field Type
-                    int length = binaryReader.ReadByte();                   // Read the field Length
+                    sbyte length = binaryReader.ReadSByte();                // Read the field Length
                     bool primary =false;                                    // Read if the primary key
                     if (binaryReader.ReadByte() == 1)
                     {
                         primary = true;
                     }
                     string name = binaryReader.ReadString();                // Read the field Name
-                    DataColumn field = new DataColumn(name);
+                    Datacolumn field = new Datacolumn(name);
                     field.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), typeCode));
                     field.MaxLength = length;
                     field.Primary = primary;
@@ -477,7 +478,7 @@ namespace DataTable
                 for (int i = 0; i < row.ItemArray.Length; i++)
                 {
                     object data = row.ItemArray[i];
-                    DataColumn dataColumn = _columns[i];
+                    Datacolumn dataColumn = _columns[i];
                     Type dataType = dataColumn.DataType;
 
                     if (dataType == typeof(int))
@@ -502,6 +503,7 @@ namespace DataTable
 
                 indexWriter.Write((UInt16)offset);  // Write the length
                 indexWriter.Close();
+                indexWriter.Dispose();
 
                 // Write the header
 
@@ -511,6 +513,7 @@ namespace DataTable
                 binaryWriter.Write(_size);                                      // Write the size
                 binaryWriter.Write((UInt16)(_pointer + offset));                // Write the pointer
                 binaryWriter.Close();
+                binaryWriter.Dispose();
 
                 // Write the data
 
@@ -519,11 +522,12 @@ namespace DataTable
                 // Need to update the 
 
                 binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Append));
-
+                byte flag = 0;
+                binaryWriter.Write(flag);
                 for (int i = 0; i < row.ItemArray.Length; i++)
                 {
                     object data = row.ItemArray[i];
-                    DataColumn dataColumn = _columns[i];
+                    Datacolumn dataColumn = _columns[i];
                     Type dataType = dataColumn.DataType;
 
                     if (dataType == typeof(int))
@@ -552,6 +556,8 @@ namespace DataTable
                         }
                     }
                 }
+                binaryWriter.Close();
+                binaryWriter.Dispose();
             }
         }
 
