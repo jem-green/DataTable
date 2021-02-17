@@ -7,16 +7,28 @@ using System.Data;
 
 namespace DataTable
 {
-    public class DataColumnCollection : ObservableCollection<Datacolumn>
+    public class DataColumnCollection : ObservableCollection<DataColumn>
     {
-        public new void Add(Datacolumn column)
+        #region Variables
+        DataHandler _handler;
+        #endregion
+        #region Constructors
+        public DataColumnCollection(DataHandler handler)
+        {
+            _handler = handler;
+        }
+        #endregion
+
+        public new void Add(DataColumn column)
         {
             // Actually need to add the column to the file but 
-            // dont have a reference here
+            // dont have a reference here, testing out using
+            // the collection changed event to trigger the update
+            // to occur in the calling class.
 
-            IList<Datacolumn> items = base.Items;
+            IList<DataColumn> items = base.Items;
             bool match = false;
-            foreach (Datacolumn item in items)
+            foreach (DataColumn item in items)
             {
                 if (item.ColumnName == column.ColumnName)
                 {

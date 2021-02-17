@@ -19,7 +19,7 @@ namespace DataTable
         // Add methods so that the 
         // Store a odered list of DataColums
 
-        private Datacolumn[] _columns;
+        private DataColumn[] _columns;
         private bool _readOnly = false;
         private PersistentDataTable _table;
 
@@ -54,7 +54,7 @@ namespace DataTable
             }
         }
 
-        public Datacolumn this[int index]
+        public DataColumn this[int index]
         {
             get
             {
@@ -94,19 +94,19 @@ namespace DataTable
             }
         }
 
-        public Datacolumn Add()
+        public DataColumn Add()
         {
             // Need to resize the Array
-            Datacolumn column = new Datacolumn();
+            DataColumn column = new DataColumn();
             Array.Resize(ref _columns, _columns.Length + 1);
             _columns[_columns.Length] = column;
             return (column);
         }
 
-        public Datacolumn Add(string columnName, Type type)
+        public DataColumn Add(string columnName, Type type)
         {
             // Need to resize the Array
-            Datacolumn column = new Datacolumn(columnName);
+            DataColumn column = new DataColumn(columnName);
             column.DataType = type;
             // check if the column name exists
             if (Array.Exists(_columns, element => element.ColumnName == columnName) == false)
@@ -122,12 +122,12 @@ namespace DataTable
             }
 
         }
-        public Datacolumn Add(string columnName)
+        public DataColumn Add(string columnName)
         {
             return (Add(columnName,null));
         }
 
-        public Datacolumn Add(Datacolumn column)
+        public DataColumn Add(DataColumn column)
         {
             // Need to resize the Array
             Array.Resize(ref _columns, _columns.Length + 1);
@@ -135,7 +135,7 @@ namespace DataTable
             return (column);
         }
 
-        public bool CanRemove(DataColumn column)
+        public bool CanRemove(System.Data.DataColumn column)
         {
             return (true);
         }
@@ -145,17 +145,17 @@ namespace DataTable
             Array.Resize(ref _columns, 0);
         }
 
-        public bool Contains(Datacolumn item)
+        public bool Contains(DataColumn item)
         {
             throw new NotImplementedException();
         }
 
-        public void CopyTo(Datacolumn[] array, int index)
+        public void CopyTo(DataColumn[] array, int index)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerator<Datacolumn> GetEnumerator()
+        public IEnumerator<DataColumn> GetEnumerator()
         {
             throw new NotImplementedException();
         }
@@ -164,17 +164,17 @@ namespace DataTable
         {
             throw new NotImplementedException();
         }
-        public int IndexOf(Datacolumn column)
+        public int IndexOf(DataColumn column)
         {
             throw new NotImplementedException();
         }
 
-        public void Insert(int index, Datacolumn item)
+        public void Insert(int index, DataColumn item)
         {
             throw new NotImplementedException();
         }
 
-        public void Remove(Datacolumn column)
+        public void Remove(DataColumn column)
         {
             throw new NotImplementedException();
         }
@@ -189,7 +189,7 @@ namespace DataTable
             throw new NotImplementedException();
         }
 
-        public bool CanRemove(Datacolumn column)
+        public bool CanRemove(DataColumn column)
         {
             return (true);
         }
@@ -214,11 +214,11 @@ namespace DataTable
         //    throw new NotImplementedException();
         //}
 
-        public DataTable.Datacolumn this[string name]
+        public DataTable.DataColumn this[string name]
         {
             get
             {
-                DataTable.Datacolumn dataColumn = new DataTable.Datacolumn(name);
+                DataTable.DataColumn dataColumn = new DataTable.DataColumn(name);
                 return (dataColumn);
             }
             set

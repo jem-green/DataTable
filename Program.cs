@@ -39,10 +39,10 @@ namespace DataTable
 
             PersistentDataTable pdt = new PersistentDataTable(false);
 
-            Datacolumn pdc;
+            DataColumn pdc;
             try
             {
-                pdc = new Datacolumn("id");
+                pdc = new DataColumn("id");
                 pdc.DataType = System.Type.GetType("System.Int32");
                 //pdc.Unique = true;
                 pdt.Columns.Add(pdc);
@@ -51,7 +51,7 @@ namespace DataTable
 
             try
             {
-                pdc = new Datacolumn("name");
+                pdc = new DataColumn("name");
                 pdc.DataType = System.Type.GetType("System.String");
                 pdt.Columns.Add(pdc);
             }
@@ -62,7 +62,7 @@ namespace DataTable
             pdr["name"] = "jeremy";
             Console.WriteLine("Fields=" + pdr.ItemArray.Length);
             pdt.Rows.Add(pdr);
-            Console.WriteLine("Count=" + pdt.Rows.Count);
+            Console.WriteLine("Records=" + pdt.Rows.Count);
 
             foreach (DataRow r in pdt.Rows)
             {
