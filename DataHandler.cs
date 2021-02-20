@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -33,29 +34,29 @@ namespace DataTable
         // 0 - unsigned byte - Field type enum value (0-255)
         // 0 - unsigned byte - If string or blob set the length (0-255)
         // 0 - unsigned byte - Primary key 0 - No, 1 - Yes (0-1)
-        // 00 - leb128 - Length of element handled by the binary writer and reader in LEB128 format
+        // 00 - LEB128 - Length of element handled by the binary writer and reader in LEB128 format
         // bytes - string
         // ...
         // The structure repeats
         // 
         // Data
         //
-        //  1 - string
-        //  00 - leb128 - Length of element handled by the binary writer and reader in LEB128 format
-        //  bytes - string
+        // 1 - string
+        // 00 - LEB128 - Length of element handled by the binary writer and reader in LEB128 format
+        // bytes - string
         //
-        //  2 - bool
-        //  0 - unsigned byte - 0 = false, 1 = true
+        // 2 - bool
+        // 0 - unsigned byte - 0 = false, 1 = true
         // 
-        //  3 - int
-        //  0000 - 32 bit - defaults to zero
+        // 3 - int
+        // 0000 - 32 bit - defaults to zero
         // 
-        //  4 - double
-        //  000000000 - 64 bit - 
+        // 4 - double
+        // 000000000 - 64 bit - defaults to zero
         //
-        //  5 - blob
-        //  0000 - unsigned int32 - Lenght of blob
-        //  bytes - data
+        // 5 - blob
+        // 0000 - unsigned int32 - Length of blob
+        // bytes - data
         //
         // Index
         //
@@ -68,20 +69,93 @@ namespace DataTable
 
         #region variables
 
+        private string _path = "";
+        private string _name = "";
+
         private readonly object _lockObject = new Object();
         private UInt16 _size = 0;
         private UInt16 _pointer = 7;
         private UInt16 _data = 7;
-        private byte _fields = 0;
+        private byte _items = 0;
+        private Field[] _fields;
+
+
+        internal struct Field
+        {
+            string _name;
+            TypeCode _type;
+            sbyte _length;
+            bool _primary;
+
+            internal Field(string name, TypeCode type, sbyte length, bool primary)
+            {
+                _name = name;
+                _type = type;
+                _length = length;
+                _primary = primary;
+            }
+
+            internal TypeCode Type
+            {
+                set
+                {
+                    _type = value;
+                }
+                get
+                {
+                    return (_type);
+                }
+            }
+            internal sbyte Length
+            {
+                set
+                {
+                    _length = value;
+                }
+                get
+                {
+                    return (_length);
+                }
+            }
+
+        }
+
 
         #endregion
         #region Constructor
 
-        public DataHandler()
-        { }
+        public DataHandler(string path, string name)
+        {
+            _path = path;
+            _name = name;
+        }
 
         #endregion
         #region Properties
+
+        public string Path
+        {
+            set
+            {
+                _path = value;
+            }
+            get
+            {
+                return (_path);
+            }
+        }
+
+        public string Name
+        {
+            set
+            {
+                _name = value;
+            }
+            get
+            {
+                return (_name);
+            }
+        }
 
         public UInt16 Records
         {
@@ -95,27 +169,26 @@ namespace DataTable
         {
             get
             {
-                return (_fields);
+                return (_items);
             }
         }
 
         #endregion
         #region Methods
 
-        internal void Add(string path, string filename, DataColumn column)
+        internal ArrayList List
         {
-            string filenamePath = System.IO.Path.Combine(path, filename);
+            get
+            {
+                return (new ArrayList(_fields));
+            }
+        }
+
+        internal void Add(DataColumn column)
+        {
+            string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                //BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                //binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);
-                //_size = binaryReader.ReadUInt16();
-                //_pointer = binaryReader.ReadUInt16();
-                //_data = binaryReader.ReadUInt16();
-                //_records = binaryReader.ReadByte();
-                //binaryReader.Close();
-                //binaryReader.Dispose();
-
                 // need to calculate the spece needed
                 //
                 // Field
@@ -130,9 +203,18 @@ namespace DataTable
                 //
 
                 TypeCode typeCode = Type.GetTypeCode(column.DataType);
+
+                // Update the local cache
+               
+                Array.Resize(ref _fields, _items  + 1);
+                Field field = new Field(column.ColumnName, typeCode, column.MaxLength, column.Primary);
+                _fields[_items] = field;
+
+                // Calcualte the data size
+
                 int offset = 0;
-                int l = column.ColumnName.Length;
-                offset = offset + 3 + LEB128.Size(l) + l;
+                int length = column.ColumnName.Length;
+                offset = offset + 3 + LEB128.Size(length) + length;
 
                 // move the data
 
@@ -142,7 +224,7 @@ namespace DataTable
                 binaryWriter.Seek(_data, SeekOrigin.Begin);
 
                 binaryWriter.Write((byte)typeCode);             // write the field Type
-                binaryWriter.Write((byte)column.MaxLength);     // write the field Length
+                binaryWriter.Write((sbyte)column.MaxLength);     // write the field Length
                 if (column.Primary == true)                     // write the primary key indicator (byte)
                 {
                     binaryWriter.Write((byte)1);
@@ -151,37 +233,38 @@ namespace DataTable
                 {
                     binaryWriter.Write((byte)0);
                 }
+
                 binaryWriter.Write(column.ColumnName);             // Write the field Name
 
                 _pointer = (UInt16)(_pointer + offset);
                 _data = (UInt16)(_data + offset);
-                _fields = (byte)(_fields + 1);
+                _items = (byte)(_items + 1);
 
                 binaryWriter.Seek(0, SeekOrigin.Begin);
                 binaryWriter.Write(_size);                  // Write the number of records - size
                 binaryWriter.Write(_pointer);               // Write pointer to new current record
                 binaryWriter.Write(_data);                  // Write pointer to new data area
-                binaryWriter.Write(_fields);               // write new number of records
+                binaryWriter.Write(_items);               // write new number of records
                 binaryWriter.Close();
                 binaryWriter.Dispose();
             }
         }
-        internal void Open(string path, string filename, bool reset, DataColumnCollection columns)
+        internal void Open(bool reset)
         {
-            string filenamePath = System.IO.Path.Combine(path, filename);
+            string filenamePath = System.IO.Path.Combine(_path, _name);
             if ((File.Exists(filenamePath + ".dbf") == true) && (reset == false))
             {
                 // Assume we only need to read the data and not the index
 
                 BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
                 binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);      // Move to position of the current
-                _size = binaryReader.ReadUInt16();                      // Read in the data pointer
+                _size = binaryReader.ReadUInt16();                      // Read in the size of data
                 _pointer = binaryReader.ReadUInt16();                   // Read in the current record
                 _data = binaryReader.ReadUInt16();                      // Read in the data pointer
-                _fields = binaryReader.ReadByte();                     // Read in the number of records
+                _items = binaryReader.ReadByte();                       // Read in the number of fields
 
-                columns.Clear();
-                for (int count = 0; count < _fields; count++)
+                Array.Resize(ref _fields, _items);
+                for (int count = 0; count < _items; count++)
                 {
                     TypeCode typeCode = (TypeCode)binaryReader.ReadByte();  // Read the field Type
                     sbyte length = binaryReader.ReadSByte();                // Read the field Length
@@ -191,11 +274,8 @@ namespace DataTable
                         primary = true;
                     }
                     string name = binaryReader.ReadString();                // Read the field Name
-                    DataColumn field = new DataColumn(name);
-                    field.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), typeCode));
-                    field.MaxLength = length;
-                    field.Primary = primary;
-                    columns.Add(field);
+                    Field field = new Field(name,typeCode,length,primary);
+                    _fields[count] = field;
                 }
                 binaryReader.Close();
                 binaryReader.Dispose();
@@ -206,25 +286,25 @@ namespace DataTable
                 File.Delete(filenamePath + ".dbf");
                 // Assumption here is the the index also exists
                 File.Delete(filenamePath + ".idx");
-                Reset(path, filename);
+                Reset();
             }
         }
 
-        internal void Reset(string path, string filename)
+        internal void Reset()
         {
             // Reset the file
-            string filenamePath = System.IO.Path.Combine(path, filename);
+            string filenamePath = System.IO.Path.Combine(_path, _name);
             BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
             binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
             _size = 0;
             _pointer = 7;                           // Start of the data 2 x 16 bit
             _data = 7;
-            _fields = 0;
+            _items = 0;
 
-            binaryWriter.Write(_size);                  // Write the number of records - size
+            binaryWriter.Write(_size);                  // Write the size of data
             binaryWriter.Write(_pointer);               // Write pointer to new current record
             binaryWriter.Write(_data);                  // Write pointer to new data area
-            binaryWriter.Write(_fields);               // write new number of records
+            binaryWriter.Write(_items);                 // write new number of fields
             binaryWriter.BaseStream.SetLength(7);       // Fix the size as we are resetting
             binaryWriter.Close();
 
@@ -235,70 +315,53 @@ namespace DataTable
             binaryWriter.Close();
         }
 
-        internal void Remove(string path, string filename)
+        internal void Remove()
         {
         }
 
-        internal object Read(string path, string filename, int index)
+        internal DataRow Read(int index)
         {
-            object data = new object();
+            DataRow data = new DataRow();
+            data.ItemArray = new object[_items];
 
-            //    KeyValuePair<TKey, TValue> keyValue;
-            //    lock (_lockObject)
-            //    {
+            lock (_lockObject)
+            {
+                string filenamePath = System.IO.Path.Combine(_path, _name);
+                // Need to search the index file
 
-            //        Type keyParameterType = typeof(TKey);
-            //        Type valueParameterType = typeof(TValue);
+                BinaryReader indexReader = new BinaryReader(new FileStream(filenamePath + ".idx", FileMode.Open));
+                BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
+                UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
+                binaryReader.BaseStream.Seek(pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
 
-            //        string filenamePath = System.IO.Path.Combine(path, filename);
-            //        // Need to search the index file
-
-            //        BinaryReader indexReader = new BinaryReader(new FileStream(filenamePath + ".idx", FileMode.Open));
-            //        BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".bin", FileMode.Open));
-            //        indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
-            //        UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
-            //        binaryReader.BaseStream.Seek(pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
-
-            //        byte flag = binaryReader.ReadByte();
-            //        object key = null;
-            //        if (keyParameterType == typeof(int))
-            //        {
-            //            key = binaryReader.ReadInt32();
-            //        }
-            //        else if (keyParameterType == typeof(string))
-            //        {
-            //            key = binaryReader.ReadString();
-            //        }
-            //        else
-            //        {
-            //            key = default(TValue);
-            //        }
-
-            //        object value = null;
-            //        if (valueParameterType == typeof(int))
-            //        {
-            //            value = binaryReader.ReadInt32();
-            //        }
-            //        else if (valueParameterType == typeof(string))
-            //        {
-            //            value = binaryReader.ReadString();
-            //        }
-            //        else
-            //        {
-            //            value = default(TValue);
-            //        }
-
-            //        keyValue = new KeyValuePair<TKey, TValue>((TKey)key, (TValue)value);
-
-            //        binaryReader.Close();
-            //        indexReader.Close();
-            //    }
+                byte flag = binaryReader.ReadByte();
+                for (int count = 0; count < _items; count++)
+                {
+                    switch (_fields[count].Type)
+                    {
+                        case TypeCode.String:
+                            {
+                                // should not need to lenght check again here
+                                data.ItemArray[count] = binaryReader.ReadString();
+                                break;
+                            }
+                        case TypeCode.Int32:
+                            {
+                                data.ItemArray[count] = binaryReader.ReadInt32();
+                                break;
+                            }
+                    }
+                }
+                binaryReader.Close();
+                indexReader.Close();
+            }
             return (data);
         }
 
-        internal void Write(string path, string filename, DataRow row)
+        internal void Write(DataRow row)
         {
-            string filenamePath = System.IO.Path.Combine(path, filename);
+            string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
                 // Write the data
@@ -307,9 +370,9 @@ namespace DataTable
             }
         }
 
-        internal void Create(string path, string filename, DataRow row, DataColumnCollection columns)
+        internal void Create(DataRow row)
         {
-            string filenamePath = System.IO.Path.Combine(path, filename);
+            string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
                 // append the new pointer the new index file
@@ -323,24 +386,26 @@ namespace DataTable
                 for (int i = 0; i < row.ItemArray.Length; i++)
                 {
                     object data = row.ItemArray[i];
-                    DataColumn dataColumn = columns[i];
-                    Type dataType = dataColumn.DataType;
-
-                    if (dataType == typeof(int))
+                    switch (_fields[i].Type)
                     {
-                        offset += 4;
-                    }
-                    else if (dataType == typeof(string))
-                    {
-                        int length = dataColumn.MaxLength;
-                        if (length < 0)
-                        {
-                            length = Convert.ToString(data).Length;
-                        }
-                        offset = offset + LEB128.Size(length) + length;     // Includes the byte length parameter
-                                                                            // ** need to watch this as can be 2 bytes if length is > 127 characters
-                                                                            // ** https://en.wikipedia.org/wiki/LEB128
+                        case TypeCode.Int32:
+                            {
+                                offset += 4;
+                                break;
+                            }
+                        case TypeCode.String:
+                            {
+                                int length = _fields[i].Length;
+                                if (length < 0)
+                                {
+                                    length = Convert.ToString(data).Length;
+                                }
+                                offset = offset + LEB128.Size(length) + length;     // Includes the byte length parameter
+                                                                                    // ** need to watch this as can be 2 bytes if length is > 127 characters
+                                                                                    // ** https://en.wikipedia.org/wiki/LEB128
 
+                                break;
+                            }
                     }
                 }
 
@@ -372,33 +437,34 @@ namespace DataTable
                 for (int i = 0; i < row.ItemArray.Length; i++)
                 {
                     object data = row.ItemArray[i];
-                    DataColumn dataColumn = columns[i];
-                    Type dataType = dataColumn.DataType;
-
-                    if (dataType == typeof(int))
+                    switch (_fields[i].Type)
                     {
-                        binaryWriter.Write((int)data);
-                    }
-                    else if (dataType == typeof(string))
-                    {
-                        string text = Convert.ToString(data);
-
-                        if (dataColumn.MaxLength < 0)
-                        {
-                            binaryWriter.Write(text);
-                        }
-                        else
-                        {
-                            if (text.Length > dataColumn.MaxLength)
+                        case TypeCode.Int32:
                             {
-                                text = text.Substring(0, dataColumn.MaxLength);
+                                binaryWriter.Write((int)data);
+                                break;
                             }
-                            else
+                        case TypeCode.String:
                             {
-                                text = text.PadRight(dataColumn.MaxLength, '\0');
+                                string text = Convert.ToString(data);
+                                if (_fields[i].Length < 0)
+                                {
+                                    binaryWriter.Write(text);
+                                }
+                                else
+                                {
+                                    if (text.Length > _fields[i].Length)
+                                    {
+                                        text = text.Substring(0, _fields[i].Length);
+                                    }
+                                    else
+                                    {
+                                        text = text.PadRight(_fields[i].Length, '\0');
+                                    }
+                                    binaryWriter.Write(text);
+                                }
+                                break;
                             }
-                            binaryWriter.Write(text);
-                        }
                     }
                 }
                 binaryWriter.Close();

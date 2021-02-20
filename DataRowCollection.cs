@@ -37,6 +37,16 @@ namespace DataTable
         #endregion
         #region Methods
 
+        public new IEnumerator<DataRow> GetEnumerator()
+        {
+            for (int cursor = 0; cursor < _handler.Records; cursor++)
+            {
+                // Return the current element and then on next function call 
+                // resume from next element rather than starting all over again;
+                yield return (_handler.Read(cursor));
+            }
+        }
+
         public DataRow Current => throw new NotImplementedException();
 
         object IEnumerator.Current => throw new NotImplementedException();

@@ -13,7 +13,12 @@ namespace DataTable
 
         #endregion
         #region Constructors
-        
+
+        public DataRow()
+        {
+            //_table = table;
+        }
+
         public DataRow(PersistentDataTable table)
         {
             _table = table;

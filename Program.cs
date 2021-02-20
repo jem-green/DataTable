@@ -23,8 +23,9 @@ namespace DataTable
             System.Data.DataRow dr = dt.NewRow();
             dr["id"] = 1;
             dr["name"] = "jeremy";
-            Console.WriteLine("Count=" + dr.ItemArray.Length);
+            Console.WriteLine("Fields=" + dr.ItemArray.Length); ;
             dt.Rows.Add(dr);
+            Console.WriteLine("Records=" + dt.Rows.Count);
 
             foreach (System.Data.DataRow r in dt.Rows)
             {
@@ -37,7 +38,7 @@ namespace DataTable
 
             Console.WriteLine("----------");
 
-            PersistentDataTable pdt = new PersistentDataTable(false);
+            PersistentDataTable pdt = new PersistentDataTable("test_table",true);
 
             DataColumn pdc;
             try

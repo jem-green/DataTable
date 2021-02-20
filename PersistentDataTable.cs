@@ -27,56 +27,67 @@ namespace DataTable
 
         public PersistentDataTable()
         {
-            _handler = new DataHandler();
+            _handler = new DataHandler(_path,_name);
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
-            _handler.Open(_path, _name, false, _columns);
+            _handler.Open(false);
+            //_columns = _handler.Items;
             _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
             _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
-
         }
 
         public PersistentDataTable(bool reset)
         {
-            _handler = new DataHandler();
+            _handler = new DataHandler(_path, _name);
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
-            _handler.Open(_path, _name, false, _columns);
+            _handler.Open(false);
             _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
             _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string name)
         {
-            _handler = new DataHandler();
+            _handler = new DataHandler(_path, _name);
             _name = name;
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
-            _handler.Open(_path, _name, false, _columns);
+            _handler.Open(false);
+            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
+            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
+        }
+
+        public PersistentDataTable(string name, bool reset)
+        {
+            _handler = new DataHandler(_path, _name);
+            _name = name;
+            _columns = new DataColumnCollection(_handler);
+            _rows = new DataRowCollection(_handler);
+            _handler.Open(reset);
             _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
             _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string path, string filename)
         {
-            _handler = new DataHandler();
+            _handler = new DataHandler(_path, _name);
             _path = path;
             _name = filename;
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
-            _handler.Open(_path, _name, false, _columns);
+            _handler.Open(false);
             _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
             _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string path, string filename, bool reset)
         {
-            _handler = new DataHandler();
+            _handler = new DataHandler(_path, _name);
             _path = path;
             _name = filename;
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
-            _handler.Open(_path, _name, false, _columns);
+            _handler.Open(false);
             _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
             _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
@@ -117,6 +128,18 @@ namespace DataTable
             get
             {
                 return (_name);
+            }
+        }
+
+        public DataHandler Handler
+        {
+            set
+            {
+                _handler = value;
+            }
+            get
+            {
+                return (_handler);
             }
         }
 
@@ -179,7 +202,7 @@ namespace DataTable
             {
                 foreach (DataColumn column in e.NewItems)
                 {
-                    _handler.Add(_path, _name, column);
+                    _handler.Add(column);
                 }
             }
         }
@@ -192,7 +215,7 @@ namespace DataTable
             {
                 foreach (DataRow row in e.NewItems)
                 {
-                    _handler.Create(_path, _name, row, _columns);
+                    _handler.Create(row);
                 }
             }
         }
