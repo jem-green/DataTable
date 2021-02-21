@@ -8,11 +8,11 @@ using System.Collections;
 
 namespace DataTable
 {
-    public class DataRowCollection : ObservableCollection<DataRow>, IEnumerator<DataRow>
+    public class DataRowCollection : ICollection<DataRow>, IEnumerator<DataRow>, IList<DataRow>
     {
         #region Variables
 
-        DataHandler _handler;
+        private DataHandler _handler;
         private int _cursor;
         private bool disposedValue;
 
@@ -25,8 +25,16 @@ namespace DataTable
 
         #endregion
         #region Properties
+        
+        public bool IsSynchronized
+        {
+            get
+            {
+                return (true);
+            }
+        }
 
-        public new int Count
+        public int Count
         {
             get
             {
@@ -34,24 +42,106 @@ namespace DataTable
             }
         }
 
-        #endregion
-        #region Methods
-
-        public new IEnumerator<DataRow> GetEnumerator()
+        public DataRow this[int index]
         {
-            for (int cursor = 0; cursor < _handler.Records; cursor++)
+            get
             {
-                // Return the current element and then on next function call 
-                // resume from next element rather than starting all over again;
-                yield return (_handler.Read(cursor));
+                if ((index < 0) || (index > _handler.Records))
+                {
+                    throw new IndexOutOfRangeException();
+                }
+                else
+                {
+                    return (_handler.Read(index));
+                }
+            }
+            set
+            {
+                if ((index < 0) || (index > _handler.Records))
+                {
+                    throw new IndexOutOfRangeException();
+                }
+                else
+                {
+                    _handler.Update(value,index);
+                }
             }
         }
 
-        public DataRow Current => throw new NotImplementedException();
+        public object SyncRoot => throw new NotImplementedException();
 
-        object IEnumerator.Current => throw new NotImplementedException();
+        public object Current => throw new NotImplementedException();
+        public bool IsReadOnly
+        {
+            get
+            {
+                return (false);
+            }
+        }
+        #endregion
+        #region Methods
 
-        public bool MoveNext()
+        /// <summary>
+        /// Clear the Collection
+        /// </summary>
+        public void Clear()
+        {
+            _handler.Reset();
+        }
+
+        /// <summary>
+        /// Add a new item at the end of the list
+        /// </summary>
+        /// <param name="item"></param>
+        public void Add(DataRow row)
+        {
+
+                _handler.Create(row);
+
+        }
+		
+		public bool Remove(DataRow row)
+        {
+            int itemIndex = -1;
+            bool removed = false;
+            for (int item = 0; item < _handler.Records; item++)
+            {
+                // This is much more complex as == is not based on
+                // object references so they will never match.
+
+                break;
+            }
+
+            if (itemIndex >= 0)
+            {
+                _handler.Delete(itemIndex);
+                removed = true;
+            }
+            else
+            {
+                throw new ArgumentException();
+            }
+            return (removed);
+        }
+
+        public void RemoveAt(int index)
+        {
+            throw new IndexOutOfRangeException();
+        }
+
+        public void Insert(int index, DataRow row)
+        {
+            if ((index < 0) || (index > _handler.Records))
+            {
+                throw new IndexOutOfRangeException();
+            }
+            else
+            {
+                _handler.Update(row, index);
+            }
+        }
+
+        bool IEnumerator.MoveNext()
         {
             bool moved = false;
             if (_cursor < _handler.Records)
@@ -61,10 +151,68 @@ namespace DataTable
             return (moved);
         }
 
-        public void Reset()
+        void IEnumerator.Reset()
+        {
+            _cursor = -1;
+        }
+
+        object IEnumerator.Current
+        {
+            get
+            {
+                if ((_cursor < 0) || (_cursor == _handler.Records))
+                {
+                    throw new InvalidOperationException();
+                }
+                else
+                {
+                    return (_handler.Read(_cursor));
+                }
+            }
+        }
+
+        DataRow IEnumerator<DataRow>.Current => throw new NotImplementedException();
+
+        //DataColumn IEnumerator<DataColumn>.Current
+        //{
+        //    get
+        //    {
+        //        if ((_cursor < 0) || (_cursor == _handler.Fields))
+        //        {
+        //            throw new InvalidOperationException();
+        //        }
+        //        else
+        //        {
+        //            return ((T)Convert.ChangeType(Read(_path, _name, _cursor), typeof(T)));
+        //        }
+        //    }
+        //}
+
+        public void CopyTo(DataRow[] rows, int index)
         {
             throw new NotImplementedException();
         }
+
+        public bool Contains(DataRow row)
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+		
+        public IEnumerator<DataRow> GetEnumerator()
+        {
+            for (int cursor = 0; cursor < _handler.Records; cursor++)
+            {
+                // Return the current element and then on next function call 
+                // resume from next element rather than starting all over again;
+                yield return (_handler.Read(cursor));
+            }
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -87,13 +235,34 @@ namespace DataTable
         //     Dispose(disposing: false);
         // }
 
+        public bool MoveNext()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Reset()
+        {
+            throw new NotImplementedException();
+        }
+
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+		
+        public int IndexOf(DataRow row)
+        {
+            throw new NotImplementedException();
+        }
 
+
+
+
+
+        #endregion
+        #region Private
         #endregion
     }
 }

@@ -32,8 +32,6 @@ namespace DataTable
             _rows = new DataRowCollection(_handler);
             _handler.Open(false);
             //_columns = _handler.Items;
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(bool reset)
@@ -42,8 +40,6 @@ namespace DataTable
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
             _handler.Open(false);
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string name)
@@ -53,8 +49,6 @@ namespace DataTable
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
             _handler.Open(false);
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string name, bool reset)
@@ -64,8 +58,6 @@ namespace DataTable
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
             _handler.Open(reset);
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string path, string filename)
@@ -76,8 +68,6 @@ namespace DataTable
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
             _handler.Open(false);
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         public PersistentDataTable(string path, string filename, bool reset)
@@ -88,8 +78,6 @@ namespace DataTable
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
             _handler.Open(false);
-            _columns.CollectionChanged += new NotifyCollectionChangedEventHandler(_columns_CollectionChanged);
-            _rows.CollectionChanged += new NotifyCollectionChangedEventHandler(_row_CollectionChanged);
         }
 
         #endregion
@@ -158,17 +146,17 @@ namespace DataTable
         {
             DataRow dr = new DataRow(this);
             dr.ItemArray = new object[_columns.Count];
-            for (int i = 0; i < _columns.Count; i++)
+            for (int item = 0; item < _columns.Count; item++)
             {
                 // Set the default value for the type
-                DataColumn column = _columns[i];
+                DataColumn column = _columns[item];
                 if (column.DataType.IsValueType == true)
                 {
-                    dr.ItemArray[i] = Activator.CreateInstance(column.DataType);
+                    dr.ItemArray[item] = Activator.CreateInstance(column.DataType);
                 }
                 else
                 {
-                    dr.ItemArray[i] = null;
+                    dr.ItemArray[item] = null;
                 }
             }
             return (dr);
@@ -194,32 +182,6 @@ namespace DataTable
 
         #endregion
         #region Private
-
-        private void _columns_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            // Need to add the new column to the header
-            if (e.Action == NotifyCollectionChangedAction.Add)
-            {
-                foreach (DataColumn column in e.NewItems)
-                {
-                    _handler.Add(column);
-                }
-            }
-        }
-
-        private void _row_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            // Need to add the new column to the header
-            // Need to add the new column to the header
-            if (e.Action == NotifyCollectionChangedAction.Add)
-            {
-                foreach (DataRow row in e.NewItems)
-                {
-                    _handler.Create(row);
-                }
-            }
-        }
-
         #endregion
     }
 }

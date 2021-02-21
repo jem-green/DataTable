@@ -95,17 +95,6 @@ namespace DataTable
                 _primary = primary;
             }
 
-            internal TypeCode Type
-            {
-                set
-                {
-                    _type = value;
-                }
-                get
-                {
-                    return (_type);
-                }
-            }
             internal sbyte Length
             {
                 set
@@ -115,6 +104,30 @@ namespace DataTable
                 get
                 {
                     return (_length);
+                }
+            }
+
+            internal string Name
+            {
+                set
+                {
+                    _name = value;
+                }
+                get
+                {
+                    return (_name);
+                }
+            }
+
+            internal TypeCode Type
+            {
+                set
+                {
+                    _type = value;
+                }
+                get
+                {
+                    return (_type);
                 }
             }
 
@@ -173,17 +186,97 @@ namespace DataTable
             }
         }
 
+        //internal ArrayList List
+        //{
+        //    get
+        //    {
+        //        return (new ArrayList(_fields));
+        //    }
+        //}
+
         #endregion
         #region Methods
 
-        internal ArrayList List
+        // General methods
+        // Opne - 
+        // Reset -
+        //
+        // Column methods
+        // Add -
+        // Remove -
+        // write -
+        // 
+        // 
+        // Data methods (CRUD) 
+        // Create -
+        // Read -
+        // Update -
+        // Delete
+
+        internal void Open(bool reset)
         {
-            get
+            string filenamePath = System.IO.Path.Combine(_path, _name);
+            if ((File.Exists(filenamePath + ".dbf") == true) && (reset == false))
             {
-                return (new ArrayList(_fields));
+                // Assume we only need to read the data and not the index
+
+                BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);      // Move to position of the current
+                _size = binaryReader.ReadUInt16();                      // Read in the size of data
+                _pointer = binaryReader.ReadUInt16();                   // Read in the current record
+                _data = binaryReader.ReadUInt16();                      // Read in the data pointer
+                _items = binaryReader.ReadByte();                       // Read in the number of fields
+
+                Array.Resize(ref _fields, _items);
+                for (int count = 0; count < _items; count++)
+                {
+                    TypeCode typeCode = (TypeCode)binaryReader.ReadByte();  // Read the field Type
+                    sbyte length = binaryReader.ReadSByte();                // Read the field Length
+                    bool primary = false;                                    // Read if the primary key
+                    if (binaryReader.ReadByte() == 1)
+                    {
+                        primary = true;
+                    }
+                    string name = binaryReader.ReadString();                // Read the field Name
+                    Field field = new Field(name,typeCode,length,primary);
+                    _fields[count] = field;
+                }
+                binaryReader.Close();
+                binaryReader.Dispose();
+            }
+            else
+            {
+                // Need to delete both data and index
+                File.Delete(filenamePath + ".dbf");
+                // Assumption here is the the index also exists
+                File.Delete(filenamePath + ".idx");
+                Reset();
             }
         }
+        internal void Reset()
+        {
+            // Reset the file
+            string filenamePath = System.IO.Path.Combine(_path, _name);
+            BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
+            binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
+            _size = 0;
+            _pointer = 7;                           // Start of the data 2 x 16 bit
+            _data = 7;
+            _items = 0;
 
+            binaryWriter.Write(_size);                  // Write the size of data
+            binaryWriter.Write(_pointer);               // Write pointer to new current record
+            binaryWriter.Write(_data);                  // Write pointer to new data area
+            binaryWriter.Write(_items);                 // write new number of fields
+            binaryWriter.BaseStream.SetLength(7);       // Fix the size as we are resetting
+            binaryWriter.Close();
+
+            // Create the index
+
+            binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".idx", FileMode.OpenOrCreate));
+            binaryWriter.BaseStream.SetLength(0);
+            binaryWriter.Close();
+        }
         internal void Add(DataColumn column)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -205,8 +298,8 @@ namespace DataTable
                 TypeCode typeCode = Type.GetTypeCode(column.DataType);
 
                 // Update the local cache
-               
-                Array.Resize(ref _fields, _items  + 1);
+
+                Array.Resize(ref _fields, _items + 1);
                 Field field = new Field(column.ColumnName, typeCode, column.MaxLength, column.Primary);
                 _fields[_items] = field;
 
@@ -249,79 +342,33 @@ namespace DataTable
                 binaryWriter.Dispose();
             }
         }
-        internal void Open(bool reset)
+        internal void Remove(DataColumn column)
         {
-            string filenamePath = System.IO.Path.Combine(_path, _name);
-            if ((File.Exists(filenamePath + ".dbf") == true) && (reset == false))
-            {
-                // Assume we only need to read the data and not the index
 
-                BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);      // Move to position of the current
-                _size = binaryReader.ReadUInt16();                      // Read in the size of data
-                _pointer = binaryReader.ReadUInt16();                   // Read in the current record
-                _data = binaryReader.ReadUInt16();                      // Read in the data pointer
-                _items = binaryReader.ReadByte();                       // Read in the number of fields
+        }
+        internal void Set(DataColumn column, int index)
+        {
+            // This is more complex as need to reinsert the column name 
+            // if it is longer and move the data.
+            // At the moment just update the local cache
 
-                Array.Resize(ref _fields, _items);
-                for (int count = 0; count < _items; count++)
-                {
-                    TypeCode typeCode = (TypeCode)binaryReader.ReadByte();  // Read the field Type
-                    sbyte length = binaryReader.ReadSByte();                // Read the field Length
-                    bool primary = false;                                    // Read if the primary key
-                    if (binaryReader.ReadByte() == 1)
-                    {
-                        primary = true;
-                    }
-                    string name = binaryReader.ReadString();                // Read the field Name
-                    Field field = new Field(name,typeCode,length,primary);
-                    _fields[count] = field;
-                }
-                binaryReader.Close();
-                binaryReader.Dispose();
-            }
-            else
-            {
-                // Need to delete both data and index
-                File.Delete(filenamePath + ".dbf");
-                // Assumption here is the the index also exists
-                File.Delete(filenamePath + ".idx");
-                Reset();
-            }
+            Field field = new Field();
+            field.Name = column.ColumnName;
+            field.Length = column.MaxLength;
+            field.Type = Type.GetTypeCode(column.DataType);
         }
 
-        internal void Reset()
+        internal DataColumn Get(int index)
         {
-            // Reset the file
-            string filenamePath = System.IO.Path.Combine(_path, _name);
-            BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
-            binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
-            _size = 0;
-            _pointer = 7;                           // Start of the data 2 x 16 bit
-            _data = 7;
-            _items = 0;
-
-            binaryWriter.Write(_size);                  // Write the size of data
-            binaryWriter.Write(_pointer);               // Write pointer to new current record
-            binaryWriter.Write(_data);                  // Write pointer to new data area
-            binaryWriter.Write(_items);                 // write new number of fields
-            binaryWriter.BaseStream.SetLength(7);       // Fix the size as we are resetting
-            binaryWriter.Close();
-
-            // Create the index
-
-            binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".idx", FileMode.OpenOrCreate));
-            binaryWriter.BaseStream.SetLength(0);
-            binaryWriter.Close();
-        }
-
-        internal void Remove()
-        {
+            DataColumn column = new DataColumn(_fields[index].Name);
+            column.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), _fields[index].Type));
+            column.MaxLength = _fields[index].Length;
+            return (column);
         }
 
         internal DataRow Read(int index)
         {
-            DataRow data = new DataRow();
+            DataRow data = new DataRow(this);
             data.ItemArray = new object[_items];
 
             lock (_lockObject)
@@ -358,8 +405,7 @@ namespace DataTable
             }
             return (data);
         }
-
-        internal void Write(DataRow row)
+        internal void Update(DataRow row, int Index)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
@@ -369,7 +415,6 @@ namespace DataTable
 
             }
         }
-
         internal void Create(DataRow row)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -379,7 +424,6 @@ namespace DataTable
 
                 BinaryWriter indexWriter = new BinaryWriter(new FileStream(filenamePath + ".idx", FileMode.Append));
                 indexWriter.Write(_pointer);  // Write the pointer
-
 
                 int offset = 0;
                 offset += 1;    // Including the flag
@@ -471,7 +515,10 @@ namespace DataTable
                 binaryWriter.Dispose();
             }
         }
+        internal void Delete(int index)
+        {
 
+        }
         #endregion
     }
 

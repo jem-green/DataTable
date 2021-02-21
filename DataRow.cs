@@ -10,13 +10,14 @@ namespace DataTable
         
         private object[] _items;
         private PersistentDataTable _table;
+        private DataHandler _handler;
 
         #endregion
         #region Constructors
 
-        public DataRow()
+        public DataRow(DataHandler handler)
         {
-            //_table = table;
+            _handler = handler;
         }
 
         public DataRow(PersistentDataTable table)
@@ -40,14 +41,29 @@ namespace DataTable
             get
             {
                 int columnIndex = -1;
-                for (int index = 0; index < _table.Columns.Count; index++)
+                if (_table == null)
                 {
-                    if (_table.Columns[index].ColumnName == columnName)
+                    for (int index = 0; index < _handler.Fields; index++)
                     {
-                        columnIndex = index;
-                        break;
+                        if (_handler.Get(index).ColumnName == columnName)
+                        {
+                            columnIndex = index;
+                            break;
+                        }
                     }
                 }
+                else
+                {
+                    for (int index = 0; index < _table.Columns.Count; index++)
+                    {
+                        if (_table.Columns[index].ColumnName == columnName)
+                        {
+                            columnIndex = index;
+                            break;
+                        }
+                    }
+                }
+            
                 if (columnIndex < 0)
                 {
                     throw new ArgumentException();
@@ -61,12 +77,26 @@ namespace DataTable
             set
             {
                 int columnIndex = -1;
-                for (int index = 0; index < _table.Columns.Count; index++)
+                if (_table == null)
                 {
-                    if (_table.Columns[index].ColumnName == columnName)
+                    for (int index = 0; index < _handler.Fields; index++)
                     {
-                        columnIndex = index;
-                        break;
+                        if (_handler.Get(index).ColumnName == columnName)
+                        {
+                            columnIndex = index;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    for (int index = 0; index < _table.Columns.Count; index++)
+                    {
+                        if (_table.Columns[index].ColumnName == columnName)
+                        {
+                            columnIndex = index;
+                            break;
+                        }
                     }
                 }
 

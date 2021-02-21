@@ -32,6 +32,14 @@ namespace DataTable
                 Console.WriteLine(r["id"] + "," + r["name"]);
             }
 
+            try
+            {
+                dt.Columns.Remove("Test");
+                Console.WriteLine("Removed");
+            }
+            catch { };
+
+
             dt.Select("", "");
 
             dt.Dispose();
@@ -69,6 +77,13 @@ namespace DataTable
             {
                 Console.WriteLine(r["id"] + "," + r["name"]);
             }
+
+            try
+            {
+                dt.Columns.Remove("Test");
+                Console.WriteLine("Removed");
+            }
+            catch { };
 
             //pdt.Select("", "");
 
