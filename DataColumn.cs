@@ -10,6 +10,7 @@ namespace DataTable
     {
         #region Variables
         private string _name;
+        private byte _flag;
         private Type _type;
         private sbyte _length = -1;           // Default no maximum
         private bool _primary = false;      //
@@ -71,6 +72,20 @@ namespace DataTable
                 return (_type);
             }
         }
+
+        public byte Flag
+        {
+            set
+            {
+                _flag = value;
+            }
+
+            get
+            {
+                return (_flag);
+            }
+        }
+
         public sbyte MaxLength
         {
             set

@@ -18,11 +18,26 @@ namespace DataTable
         public DataRow(DataHandler handler)
         {
             _handler = handler;
+            _items = new object[_handler.Items];
+            for (int item = 0; item < _handler.Items; item++)
+            {
+                // Set the default value for the type
+                Type type = Type.GetType("System." + Enum.GetName(typeof(TypeCode), _handler.Fields[item].Type));
+                if (type.IsValueType == true)
+                {
+                    _items[item] = Activator.CreateInstance(type);
+                }
+                else
+                {
+                    _items[item] = null;
+                }
+            }
         }
 
         public DataRow(PersistentDataTable table)
         {
             _table = table;
+            _handler = _table.Handler;
         }
 
         #endregion
@@ -43,7 +58,7 @@ namespace DataTable
                 int columnIndex = -1;
                 if (_table == null)
                 {
-                    for (int index = 0; index < _handler.Fields; index++)
+                    for (int index = 0; index < _handler.Items; index++)
                     {
                         if (_handler.Get(index).ColumnName == columnName)
                         {
@@ -79,7 +94,7 @@ namespace DataTable
                 int columnIndex = -1;
                 if (_table == null)
                 {
-                    for (int index = 0; index < _handler.Fields; index++)
+                    for (int index = 0; index < _handler.Items; index++)
                     {
                         if (_handler.Get(index).ColumnName == columnName)
                         {
@@ -106,17 +121,52 @@ namespace DataTable
                 }
                 else
                 {
-                    // The behavior seesm to be to convert the data into the correct data type
+                    // The behavior seems to be to convert the data into the correct data type
 
                     if (_table.Columns[columnIndex].DataType == value.GetType())
                     {
-                        _items[columnIndex] = value;
+                        // This is where we need to trap the string field length
+                        if (_table.Columns[columnIndex].DataType.GetType() == typeof(string))
+                        {
+                            sbyte length = _table.Columns[columnIndex].MaxLength;
+                            if (length > 0)
+                            {
+                                string s = value.ToString().PadRight(length, '\0');
+                                s = s.Substring(0, length);
+                                _items[columnIndex] = value;
+                            }
+                            else
+                            {
+                                _items[columnIndex] = value;
+                            }
+                        }
+                        else
+                        {
+                            _items[columnIndex] = value;
+                        }
                     }
                     else
                     {
                         try
                         {
-                            _items[columnIndex] = Convert.ChangeType(value, _table.Columns[columnIndex].DataType);
+                            if (_table.Columns[columnIndex].DataType.GetType() == typeof(string))
+                            {
+                                sbyte length = _table.Columns[columnIndex].MaxLength;
+                                if (length > 0)
+                                {
+                                    string s = value.ToString().PadRight(length, '\0');
+                                    s = s.Substring(0, length);
+                                    _items[columnIndex] = value;
+                                }
+                                else
+                                {
+                                    _items[columnIndex] = value;
+                                }
+                            }
+                            else
+                            {
+                                _items[columnIndex] = Convert.ChangeType(value, _table.Columns[columnIndex].DataType);
+                            }
                         }
                         catch
                         {
@@ -131,7 +181,7 @@ namespace DataTable
         {
             get
             {
-                if ((columnIndex < 0) || (columnIndex > _table.Columns.Count))
+                if ((columnIndex < 0) || (columnIndex > _handler.Items))
                 {
                     throw new IndexOutOfRangeException();
                 }
@@ -142,14 +192,14 @@ namespace DataTable
             }
 
             set
-            {
-                if ((columnIndex < 0) || (columnIndex > _table.Columns.Count))
+            {             
+                if ((columnIndex < 0) || (columnIndex > _handler.Items))
                 {
                     throw new IndexOutOfRangeException();
                 }
                 else
                 {
-                    if (_table.Columns[columnIndex].DataType == value.GetType())
+                    if (_handler.Fields[columnIndex].Type == Type.GetTypeCode(value.GetType()))
                     {
                         _items[columnIndex] = value;
                     }
@@ -157,7 +207,7 @@ namespace DataTable
                     {
                         try
                         {
-                            _items[columnIndex] = Convert.ChangeType(value, _table.Columns[columnIndex].DataType);
+                            _items[columnIndex] = Convert.ChangeType(value, _handler.Fields[columnIndex].Type);
                         }
                         catch
                         {
@@ -183,8 +233,11 @@ namespace DataTable
 
         #endregion
         #region Methods
-        public void Add()
-        { }
+        public void Delete()
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

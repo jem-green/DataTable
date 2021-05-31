@@ -87,7 +87,7 @@ namespace DataTable
 
             //pdt.Select("", "");
 
-            pdt.Dispose();
+            pdt.Dispose();  // Need to agree if this deletes the datatable files
 
         }
     }

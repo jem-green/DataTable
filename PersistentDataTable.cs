@@ -10,7 +10,7 @@ namespace DataTable
 {
     public class PersistentDataTable : IDisposable
     {
-         #region Variables
+        #region Variables
 
         private string _path = "";
         private string _name = "PersistentDataTable";
@@ -174,7 +174,7 @@ namespace DataTable
             {
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects)
+                    _handler.Close();
                 }
                 disposedValue = true;
             }

@@ -95,9 +95,7 @@ namespace DataTable
         /// <param name="item"></param>
         public void Add(DataRow row)
         {
-
-                _handler.Create(row);
-
+            _handler.Create(row);
         }
 		
 		public bool Remove(DataRow row)
@@ -116,12 +114,12 @@ namespace DataTable
             {
                 _handler.Delete(itemIndex);
                 removed = true;
+                return (removed);
             }
             else
             {
                 throw new ArgumentException();
             }
-            return (removed);
         }
 
         public void RemoveAt(int index)

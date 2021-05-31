@@ -39,7 +39,7 @@ namespace DataTable
         {
             get
             {
-                return (_handler.Fields);
+                return (_handler.Items);
             }
         }
 
@@ -47,7 +47,7 @@ namespace DataTable
         {
             get
             {
-                if ((index < 0) || (index > _handler.Fields))
+                if ((index < 0) || (index > _handler.Items))
                 {
                     throw new IndexOutOfRangeException();
                 }
@@ -58,13 +58,13 @@ namespace DataTable
             }
             set
             {
-                if ((index < 0) || (index > _handler.Fields))
+                if ((index < 0) || (index > _handler.Items))
                 {
                     throw new IndexOutOfRangeException();
                 }
                 else
                 {
-                    _handler.Set(value,index);
+                    _handler.Set(value, index);
                 }
             }
         }
@@ -98,7 +98,7 @@ namespace DataTable
         public void Add(DataColumn column)
         {
             bool match = false;
-            for (int item = 0; item<_handler.Fields; item++)
+            for (int item = 0; item<_handler.Items; item++)
             {
                 if (_handler.Get(item).ColumnName == column.ColumnName)
                 {
@@ -106,7 +106,7 @@ namespace DataTable
                 }
             }
 
-            if ((match == false) || (_handler.Fields == 0))
+            if ((match == false) || (_handler.Items == 0))
             {
                 _handler.Add(column);
             }
@@ -120,7 +120,7 @@ namespace DataTable
         {
             bool removed = false;
             bool match = false;
-            for (int item = 0; item < _handler.Fields; item++)
+            for (int item = 0; item < _handler.Items; item++)
             {
                 if (_handler.Get(item).ColumnName == column.ColumnName)
                 {
@@ -148,7 +148,7 @@ namespace DataTable
         public void Insert(int index, DataColumn column)
         { 
             bool match = false;
-            for (int item = 0; item < _handler.Fields; item++)
+            for (int item = 0; item < _handler.Items; item++)
             {
                 if (_handler.Get(item).ColumnName == column.ColumnName)
                 {
@@ -158,7 +158,6 @@ namespace DataTable
 
             if (match == true)
             {
-                throw new NotImplementedException();
                 _handler.Add(column);
             }
             else
@@ -170,7 +169,7 @@ namespace DataTable
         bool IEnumerator.MoveNext()
         {
             bool moved = false;
-            if (_cursor < _handler.Fields)
+            if (_cursor < _handler.Items)
             {
                 moved = true;
             }
@@ -186,7 +185,7 @@ namespace DataTable
         {
             get
             {
-                if ((_cursor < 0) || (_cursor == _handler.Fields))
+                if ((_cursor < 0) || (_cursor == _handler.Items))
                 {
                     throw new InvalidOperationException();
                 }
@@ -232,7 +231,7 @@ namespace DataTable
 
         public IEnumerator<DataColumn> GetEnumerator()
         {
-            for (int cursor = 0; cursor < _handler.Fields; cursor++)
+            for (int cursor = 0; cursor < _handler.Items; cursor++)
             {
             	//Return the current element and then on next function call 
                 //resume from next element rather than starting all over again;
