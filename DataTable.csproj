@@ -5,7 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>DataTable</AssemblyName>
     <RootNamespace>DataTable</RootNamespace>
-    <StartupObject>DataTable.Row</StartupObject>
+    <StartupObject>DataTable.Program</StartupObject>
   </PropertyGroup>
 
 </Project>

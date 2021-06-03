@@ -40,30 +40,53 @@ namespace DataTable
             r[2] = 1;
             dh.Create(r);
 
-            //r = new DataRow(dh);
-            //r[0] = "begging";
-            //r[1] = "end";
-            //r[2] = 2;
-            //dh.Create(r);
+            r = new DataRow(dh);
+            r[0] = "begging";
+            r[1] = "end";
+            r[2] = 2;
+            dh.Create(r);
 
-            //r = new DataRow(dh);
-            //r[0] = "from";
-            //r[1] = "to";
-            //r[2] = 3;
-            //dh.Create(r);
+            r = new DataRow(dh);
+            r[0] = "from";
+            r[1] = "to";
+            r[2] = 3;
+            dh.Create(r);
 
-            //r = new DataRow(dh);
-            //r[0] = "start";
-            //r[1] = "finish";
-            //r[2] = 4;
-            //dh.Create(r);
+            r = new DataRow(dh);
+            r[0] = "start";
+            r[1] = "finish";
+            r[2] = 4;
+            dh.Create(r);
 
-            //// Get the data
+            // Get the data
 
-            //for (int i = 0; i<4; i++)
-            //{
-            //    dh.Read(i);
-            //}
+            Console.WriteLine("Records=" + dh.Records);
+
+            for (int i = 0; i < dh.Records; i++)
+            {
+                DataRow dr;
+                dr = dh.Read(i);
+                for (int j=0; j < dh.Items; j++)
+                {
+                    Console.WriteLine(i + " " + j + " '" + dr.ItemArray[j] + "'");
+                }
+            }
+
+            // Delete some data
+
+            dh.Delete(2);
+
+            Console.WriteLine("Records=" + dh.Records);
+
+            for (int i = 0; i < dh.Records; i++)
+            {
+                DataRow dr;
+                dr = dh.Read(i);
+                for (int j = 0; j < dh.Items; j++)
+                {
+                    Console.WriteLine(i + " " + j + " '" + dr.ItemArray[j] + "'");
+                }
+            }
 
         }
     }

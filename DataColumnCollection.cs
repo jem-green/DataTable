@@ -116,6 +116,12 @@ namespace DataTable
             }
         }
 
+        public bool Remove(string name)
+        {
+            DataColumn column = new DataColumn(name);
+            return (Remove(column));
+        }
+
         public bool Remove(DataColumn column)
         {
             bool removed = false;

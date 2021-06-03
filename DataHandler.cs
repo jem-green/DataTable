@@ -22,7 +22,7 @@ namespace DataTable
         Field
         -----
          
-        0 - unsigned byte - number of fields (0-255)
+        0 - unsigned byte - number of fields (0-255) _items
         
         There is some concept of default values which means they would need storing or have a flag
         but assume we are only storing
@@ -107,7 +107,7 @@ namespace DataTable
 
         private readonly object _lockObject = new Object();
         private UInt16 _size = 0;
-        private readonly UInt16 _item = 7;
+        private readonly UInt16 _fieldStart = 7;
         private UInt16 _pointer = 7;
         private UInt16 _data = 7;
         private byte _items = 0;
@@ -269,7 +269,8 @@ namespace DataTable
         // Column methods
         // Add -
         // Remove -
-        // write -
+        // Set -
+        // Get -
         // 
         // 
         // Data methods (CRUD) 
@@ -293,7 +294,7 @@ namespace DataTable
                 _items = binaryReader.ReadByte();                       // Read in the number of fields
 
                 Array.Resize(ref _fields, _items);
-                UInt16 pointer = _item;
+                UInt16 pointer = _fieldStart;
                 for (int count = 0; count < _items; count++)
                 {
                     binaryReader.BaseStream.Seek(pointer, SeekOrigin.Begin);    // Move to the field as may have been updated
@@ -330,8 +331,8 @@ namespace DataTable
             binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
 
             _size = 0;
-            _pointer = _item;                          // Start of the data 3 x 16 bit + 1 x 8 bit
-            _data = _item;
+            _pointer = _fieldStart;                          // Start of the data 3 x 16 bit + 1 x 8 bit
+            _data = _fieldStart;
             _items = 0;
 
             binaryWriter.Write(_size);                  // Write the size of data
@@ -418,7 +419,7 @@ namespace DataTable
                 binaryWriter.Write((byte)offset);               // write the offset to next field
                 binaryWriter.Write(flag);                       // write the field Flag
                 binaryWriter.Write((byte)typeCode);             // write the field Type
-                binaryWriter.Write((sbyte)field.Length);    // write the field Length
+                binaryWriter.Write((sbyte)field.Length);        // write the field Length
                 if (field.Primary == true)                     // write the primary key indicator (byte)
                 {
                     binaryWriter.Write((byte)1);
@@ -434,9 +435,8 @@ namespace DataTable
                 _data = (UInt16)(_data + offset);
                 _items = (byte)(_items + 1);
 
-                binaryWriter.Seek(0, SeekOrigin.Begin);
-                _size++;                                        //
-                binaryWriter.Write(_size);                      // Write the number of records - size
+                binaryWriter.Seek(0, SeekOrigin.Begin);         //
+                binaryWriter.Write(_size);                      // Skip over just re-write size
                 binaryWriter.Write(_pointer);                   // Write pointer to new current record
                 binaryWriter.Write(_data);                      // Write pointer to new data area
                 binaryWriter.Write(_items);                     // write new number of records
@@ -468,6 +468,7 @@ namespace DataTable
 
         private void Set(Field field, int index)
         {
+            // Update the local cache then write to disk but
             // This is more complex as need to reinsert the column name 
             // if it is longer then move the data.
             // At the moment just update the local cache
@@ -475,7 +476,7 @@ namespace DataTable
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                if (index < _size)
+                if (index < _items)
                 {
                     _fields[index] = field;
 
@@ -489,7 +490,7 @@ namespace DataTable
                     // without reading the actual reecord
 
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                    UInt16 pointer = _item; // Skip over header and size
+                    UInt16 pointer = _fieldStart; // Skip over header and size
                     byte length = 0;
                     for (int counter = 0; counter < _size; counter++)
                     {
@@ -569,7 +570,7 @@ namespace DataTable
 
         internal DataColumn Get(int index)
         {
-            if (index < _size)
+            if (index < _items)
             {
                 // Build from cache
 
@@ -664,7 +665,7 @@ namespace DataTable
                     {
                         case TypeCode.Int16:
                             {
-                                offset += 4;
+                                offset += 2;
                                 break;
                             }
                         case TypeCode.Int32:
@@ -704,7 +705,8 @@ namespace DataTable
                 binaryWriter.Seek(0, SeekOrigin.Begin);                         // Move to start of the file
                 _size++;                                                        // Update the size
                 binaryWriter.Write(_size);                                      // Write the size
-                binaryWriter.Write((UInt16)(_pointer + offset));                // Write the pointer
+                _pointer = (UInt16)(_pointer + offset);                         //
+                binaryWriter.Write((UInt16)(_pointer));                         // Write the pointer
                 binaryWriter.Close();
                 binaryWriter.Dispose();
 
@@ -785,7 +787,7 @@ namespace DataTable
                 lock (_lockObject)
                 {
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                    UInt16 pointer = _item; // Skip over header and size
+                    UInt16 pointer = _fieldStart; // Skip over header and size
                     byte offset = 0;
                     for (int counter = 0; counter < _size; counter++)
                     {
@@ -848,7 +850,6 @@ namespace DataTable
             int size = 0;
             do
             {
-                //byte byt = (byte)(value & 0x7f);
                 value >>= 7;
                 size += 1;
             } while (value != 0);

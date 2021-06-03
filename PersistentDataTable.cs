@@ -27,7 +27,7 @@ namespace DataTable
 
         public PersistentDataTable()
         {
-            _handler = new DataHandler(_path,_name);
+            _handler = new DataHandler(_path, _name);
             _columns = new DataColumnCollection(_handler);
             _rows = new DataRowCollection(_handler);
             _handler.Open(false);
@@ -134,14 +134,6 @@ namespace DataTable
         #endregion
         #region Methods
 
-
-
-        //public void Add(DataRow row)
-        //{
-
-        //}
-
-
         public DataRow NewRow()
         {
             DataRow dr = new DataRow(this);
@@ -160,6 +152,29 @@ namespace DataTable
                 }
             }
             return (dr);
+        }
+
+        public DataRow[] Select()
+        {
+            // this might be the slow approach
+
+            int records = _handler.Records;
+            DataRow[] rows = new DataRow[records];
+            for (int index=0; index < records; index++)
+            {
+                rows[index] = _handler.Read(index);
+            }
+            return (rows);
+        }
+
+        public void Select(string filterExpression)
+        {
+
+        }
+
+        public void Select(string filterExpression ,string sort)
+        {
+
         }
 
         public void Dispose()

@@ -7,7 +7,6 @@ namespace DataTable
     {
         static void Main(string[] args)
         {
-            //DataSet d = new DataSet("test");
 
             System.Data.DataTable dt = new System.Data.DataTable("test_table");
 
@@ -39,8 +38,11 @@ namespace DataTable
             }
             catch { };
 
-
-            dt.Select("", "");
+            System.Data.DataRow[] rs = dt.Select();
+            foreach (System.Data.DataRow r in rs)
+            {
+                Console.WriteLine(r["id"] + "," + r["name"]);
+            }
 
             dt.Dispose();
 
@@ -80,12 +82,16 @@ namespace DataTable
 
             try
             {
-                dt.Columns.Remove("Test");
+                pdt.Columns.Remove("Test");
                 Console.WriteLine("Removed");
             }
             catch { };
 
-            //pdt.Select("", "");
+            DataRow[] prs = pdt.Select();
+            foreach (DataRow r in prs)
+            {
+                Console.WriteLine(r["id"] + "," + r["name"]);
+            }
 
             pdt.Dispose();  // Need to agree if this deletes the datatable files
 
