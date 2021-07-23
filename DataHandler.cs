@@ -23,16 +23,9 @@ namespace DataTable
         -----
          
         0 - unsigned byte - number of fields (0-255) _items
-        
-        There is some concept of default values which means they would need storing or have a flag
-        but assume we are only storing
-        
-        0 - null - 
-        1 - string - default to ""
-        2 - bool - defaul to false
-        3 - int - 32 bit - default to zero
-        4 - double - deafult to zero
-        5 - blob - default to null
+        00 - unsigned int16 - pointer to current field _fieldPointer
+
+        From the type definition
         
         Empty	    0 - A null reference.
         Object	    1 - A general type representing any reference or value type not explicitly represented by another TypeCode.
@@ -106,12 +99,14 @@ namespace DataTable
         private string _name = "";
 
         private readonly object _lockObject = new Object();
-        private UInt16 _size = 0;
-        private readonly UInt16 _fieldStart = 7;
-        private UInt16 _pointer = 7;
-        private UInt16 _data = 7;
-        private byte _items = 0;
-        private Field[] _fields;
+        private UInt16 _size = 0;               // number of elements
+        private readonly UInt16 _start = 7;     // Pointer to the start of the field area
+        private UInt16 _pointer = 7;            // Pointer to current element
+        private UInt16 _data = 7;               // pointer to start of data area
+
+        private byte _items = 0;                // number of field items
+
+        private Field[] _fields;                // Cache of fields
 
         internal struct Field
         {
@@ -263,7 +258,8 @@ namespace DataTable
         #region Methods
 
         // General methods
-        // Opne - 
+        // Open -
+        // Close - 
         // Reset -
         //
         // Column methods
@@ -272,13 +268,18 @@ namespace DataTable
         // Set -
         // Get -
         // 
-        // 
-        // Data methods (CRUD) 
+        // Row methods (CRUD) 
         // Create -
         // Read -
         // Update -
-        // Delete
+        // Delete - 
 
+        #region General Methods
+
+        /// <summary>
+        /// Open an existing database file or create a new file
+        /// </summary>
+        /// <param name="reset"></param>
         internal void Open(bool reset)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -294,7 +295,7 @@ namespace DataTable
                 _items = binaryReader.ReadByte();                       // Read in the number of fields
 
                 Array.Resize(ref _fields, _items);
-                UInt16 pointer = _fieldStart;
+                UInt16 pointer = _start;
                 for (int count = 0; count < _items; count++)
                 {
                     binaryReader.BaseStream.Seek(pointer, SeekOrigin.Begin);    // Move to the field as may have been updated
@@ -307,9 +308,12 @@ namespace DataTable
                     {
                         primary = true;
                     }
-                    string name = binaryReader.ReadString();                // Read the field Name
-                    Field field = new Field(name, flag, typeCode, length, primary);
-                    _fields[count] = field;
+                    string name = binaryReader.ReadString();                    // Read the field Name
+                    if (flag == 0)  // Not deleted or spare
+                    {
+                        Field field = new Field(name, flag, typeCode, length, primary);
+                        _fields[count] = field;
+                    }
                     pointer = (UInt16)(pointer + offset);
                 }
                 binaryReader.Close();
@@ -323,6 +327,10 @@ namespace DataTable
                 Reset();
             }
         }
+        
+        /// <summary>
+        /// Reset the database file and clear any index files
+        /// </summary>
         internal void Reset()
         {
             // Reset the file
@@ -331,8 +339,8 @@ namespace DataTable
             binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
 
             _size = 0;
-            _pointer = _fieldStart;                          // Start of the data 3 x 16 bit + 1 x 8 bit
-            _data = _fieldStart;
+            _pointer = _start;                     // Start of the data 3 x 16 bit + 1 x 8 bit
+            _data = _start;
             _items = 0;
 
             binaryWriter.Write(_size);                  // Write the size of data
@@ -350,7 +358,7 @@ namespace DataTable
         }
 
         /// <summary>
-        /// This deletes the datatable and index
+        /// Delete the datatable file and index file
         /// </summary>
         internal void Close()
         {
@@ -365,12 +373,24 @@ namespace DataTable
             }
         }
 
+        #endregion
+        #region Column methods
+
+        /// <summary>
+        /// Add a new DataColumn
+        /// Not sure if we need this helper methods as ties us to DataColumns
+        /// </summary>
+        /// <param name="column"></param>
         public void Add(DataColumn column)
         {
             Field field = new Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
             Add(field);
         }
 
+        /// <summary>
+        /// Add a new database field
+        /// </summary>
+        /// <param name="field"></param>
         private void Add(Field field)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -408,19 +428,20 @@ namespace DataTable
 
                 // this would need to shift the data area upwards to accomodate the
                 // new column entry. Seems like a design problem, but may be somthing
-                // to start with assuming that columns are not generally added.
+                // to start with assuming that columns are not generally added. Could
+                // create some spare space when we initialise the database.
 
                 // Add the new field
 
                 BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
                 binaryWriter.Seek(_data, SeekOrigin.Begin);
 
-                byte flag = 0;
+                byte flag = 0;                                  // Normal
                 binaryWriter.Write((byte)offset);               // write the offset to next field
                 binaryWriter.Write(flag);                       // write the field Flag
                 binaryWriter.Write((byte)typeCode);             // write the field Type
                 binaryWriter.Write((sbyte)field.Length);        // write the field Length
-                if (field.Primary == true)                     // write the primary key indicator (byte)
+                if (field.Primary == true)                      // write the primary key indicator (byte)
                 {
                     binaryWriter.Write((byte)1);
                 }
@@ -445,12 +466,21 @@ namespace DataTable
             }
         }
 
+        /// <summary>
+        /// Remove a DataColumn
+        /// Not sure if we need this helper methods as ties us to DataColumns
+        /// </summary>
+        /// <param name="column"></param>
         public void Remove(DataColumn column)
         {
             Field field = new Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
             Remove(field);
         }
 
+        /// <summary>
+        /// Delete an existing database field
+        /// </summary>
+        /// <param name="field"></param>
         private void Remove(Field field)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
@@ -460,16 +490,46 @@ namespace DataTable
             }
         }
 
+        /// <summary>
+        /// Delete an existing database field by index
+        /// </summary>
+        /// <param name="field"></param>
+        private void Remove(int index)
+        {
+            string filenamePath = System.IO.Path.Combine(_path, _name);
+            lock (_lockObject)
+            {
+                if (index < _items)
+                {
+
+                }
+                else
+                {
+                    throw new IndexOutOfRangeException();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Set or update the DataColumn attributes
+        /// </summary>
+        /// <param name="column"></param>
+        /// <param name="index"></param>
         public void Set(DataColumn column, int index)
         {
             Field field = new Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
             Set(field, index);
         }
 
+        /// <summary>
+        /// Set or update the field attributes
+        /// </summary>
+        /// <param name="field"></param>
+        /// <param name="index"></param>
         private void Set(Field field, int index)
         {
             // Update the local cache then write to disk but
-            // This is more complex as need to reinsert the column name 
+            // this is more complex as need to reinsert the column name 
             // if it is longer then move the data.
             // At the moment just update the local cache
 
@@ -488,9 +548,10 @@ namespace DataTable
 
                     // The problem here is i dont know the length of the column field
                     // without reading the actual reecord
+                    // could assume the cache is correct
 
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                    UInt16 pointer = _fieldStart; // Skip over header and size
+                    UInt16 pointer = _start; // Skip over header and size
                     byte length = 0;
                     for (int counter = 0; counter < _size; counter++)
                     {
@@ -509,12 +570,17 @@ namespace DataTable
 
                     if (offset > length)
                     {
+                        // The new field is longer than the old field
+                        // not sure what im doing here now as looks wrong
+                        // what it should do it mark the column as deleted and 
+                        // insert the new field at the end if no data written yet
+
                         BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
                         binaryWriter.Seek(_data, SeekOrigin.Begin);
 
                         byte flag = 0;
-                        binaryWriter.Write((byte)length);               // write the length
-                        binaryWriter.Write(flag);                       // write the field Flag
+                        binaryWriter.Write((byte)length);              // write the length
+                        binaryWriter.Write(flag);                      // write the field Flag
                         binaryWriter.Write((byte)field.Type);          // write the field Type
                         binaryWriter.Write((sbyte)field.Length);       // write the field Length
                         if (field.Primary == true)                     // write the primary key indicator (byte)
@@ -542,6 +608,8 @@ namespace DataTable
                     }
                     else
                     {
+                        // The new field name is shorter so can overrite
+
                         BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
                         binaryWriter.Seek(pointer + 2, SeekOrigin.Begin);
 
@@ -568,6 +636,11 @@ namespace DataTable
             }
         }
 
+        /// <summary>
+        /// Get the DataColumn attributes
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         internal DataColumn Get(int index)
         {
             if (index < _items)
@@ -585,7 +658,10 @@ namespace DataTable
             {
                 throw new IndexOutOfRangeException();
             }
-        }  
+        }
+
+        #endregion
+        #region Row Methods
 
         internal DataRow Read(int index)
         {
@@ -787,7 +863,7 @@ namespace DataTable
                 lock (_lockObject)
                 {
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                    UInt16 pointer = _fieldStart; // Skip over header and size
+                    UInt16 pointer = _start; // Skip over header and size
                     byte offset = 0;
                     for (int counter = 0; counter < _size; counter++)
                     {
@@ -823,8 +899,10 @@ namespace DataTable
         }
 
         #endregion
+        #endregion
     }
 
+    #region Static
     public static class LEB128
     {
         public static byte[] Encode(int value)
@@ -856,4 +934,5 @@ namespace DataTable
             return (size);
         }
     }
+    #endregion
 }

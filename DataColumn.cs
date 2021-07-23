@@ -9,6 +9,7 @@ namespace DataTable
     public class DataColumn : IComparable, IComparer, IEqualityComparer
     {
         #region Variables
+
         private string _name;
         private byte _flag;
         private Type _type;

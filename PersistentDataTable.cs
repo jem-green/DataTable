@@ -157,6 +157,7 @@ namespace DataTable
         public DataRow[] Select()
         {
             // this might be the slow approach
+            // of opening and closing the dbf and idx files
 
             int records = _handler.Records;
             DataRow[] rows = new DataRow[records];
@@ -169,12 +170,12 @@ namespace DataTable
 
         public void Select(string filterExpression)
         {
-
+            throw new NotImplementedException();
         }
 
         public void Select(string filterExpression ,string sort)
         {
-
+            throw new NotImplementedException();
         }
 
         public void Dispose()
@@ -189,7 +190,7 @@ namespace DataTable
             {
                 if (disposing)
                 {
-                    _handler.Close();
+                    _handler.Close();   // Deletes the Persistant datatable
                 }
                 disposedValue = true;
             }
