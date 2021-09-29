@@ -53,7 +53,13 @@ namespace DataTable
                 }
                 else
                 {
-                    return (_handler.Get(index));
+                    DataHandler.Field field = _handler.Get(index);
+                    DataColumn column = new DataColumn(field.Name);
+                    column.Flag = field.Flag;
+                    column.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), field.Type));
+                    column.Primary = field.Primary;
+                    column.MaxLength = field.Length;
+                    return (column);
                 }
             }
             set
@@ -64,7 +70,8 @@ namespace DataTable
                 }
                 else
                 {
-                    _handler.Set(value, index);
+                    DataHandler.Field field = new DataHandler.Field(value.ColumnName, value.Flag, Type.GetTypeCode(value.DataType), value.MaxLength, value.Primary);
+                    _handler.Set(field, index);
                 }
             }
         }
@@ -100,7 +107,7 @@ namespace DataTable
             bool match = false;
             for (int item = 0; item<_handler.Items; item++)
             {
-                if (_handler.Get(item).ColumnName == column.ColumnName)
+                if (_handler.Get(item).Name == column.ColumnName)
                 {
                     match = true;
                 }
@@ -108,7 +115,8 @@ namespace DataTable
 
             if ((match == false) || (_handler.Items == 0))
             {
-                _handler.Add(column);
+                DataHandler.Field field = new DataHandler.Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
+                _handler.Add(field);
             }
             else
             {
@@ -128,7 +136,7 @@ namespace DataTable
             bool match = false;
             for (int item = 0; item < _handler.Items; item++)
             {
-                if (_handler.Get(item).ColumnName == column.ColumnName)
+                if (_handler.Get(item).Name == column.ColumnName)
                 {
                     match = true;
                 }
@@ -136,7 +144,8 @@ namespace DataTable
 
             if (match == true)
             {
-                _handler.Remove(column);
+                DataHandler.Field field = new DataHandler.Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
+                _handler.Remove(field);
                 removed = true;
             }
             else
@@ -156,7 +165,7 @@ namespace DataTable
             bool match = false;
             for (int item = 0; item < _handler.Items; item++)
             {
-                if (_handler.Get(item).ColumnName == column.ColumnName)
+                if (_handler.Get(item).Name == column.ColumnName)
                 {
                     match = true;
                 }
@@ -164,7 +173,8 @@ namespace DataTable
 
             if (match == true)
             {
-                _handler.Add(column);
+                DataHandler.Field field = new DataHandler.Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
+                _handler.Add(field);
             }
             else
             {
@@ -239,9 +249,15 @@ namespace DataTable
         {
             for (int cursor = 0; cursor < _handler.Items; cursor++)
             {
-            	//Return the current element and then on next function call 
+                //Return the current element and then on next function call 
                 //resume from next element rather than starting all over again;
-                yield return (_handler.Get(cursor));
+                DataHandler.Field field = _handler.Get(cursor);
+                DataColumn column = new DataColumn(field.Name);
+                column.Flag = field.Flag;
+                column.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), field.Type));
+                column.Primary = field.Primary;
+                column.MaxLength = field.Length;
+                yield return (column);
             }
         }
 

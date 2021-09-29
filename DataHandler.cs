@@ -103,9 +103,7 @@ namespace DataTable
         private readonly UInt16 _start = 7;     // Pointer to the start of the field area
         private UInt16 _pointer = 7;            // Pointer to current element
         private UInt16 _data = 7;               // pointer to start of data area
-
         private byte _items = 0;                // number of field items
-
         private Field[] _fields;                // Cache of fields
 
         internal struct Field
@@ -182,6 +180,16 @@ namespace DataTable
                 {
                     return (_type);
                 }
+            }
+
+            public override string ToString()
+            {
+                string s = _name + "," + _type;
+                if (_length > 0)
+                {
+                    s = s + "[" + _length + "]";
+                }
+                return (s);
             }
         }
 
@@ -295,10 +303,10 @@ namespace DataTable
                 _items = binaryReader.ReadByte();                       // Read in the number of fields
 
                 Array.Resize(ref _fields, _items);
-                UInt16 pointer = _start;
+                UInt16 pointer = 0;
                 for (int count = 0; count < _items; count++)
                 {
-                    binaryReader.BaseStream.Seek(pointer, SeekOrigin.Begin);    // Move to the field as may have been updated
+                    binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);    // Move to the field as may have been updated
                     byte offset = binaryReader.ReadByte();                      // Read the field offset
                     byte flag = binaryReader.ReadByte();                        // Read the status flag
                     TypeCode typeCode = (TypeCode)binaryReader.ReadByte();      // Read the field Type
@@ -377,21 +385,10 @@ namespace DataTable
         #region Column methods
 
         /// <summary>
-        /// Add a new DataColumn
-        /// Not sure if we need this helper methods as ties us to DataColumns
-        /// </summary>
-        /// <param name="column"></param>
-        public void Add(DataColumn column)
-        {
-            Field field = new Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
-            Add(field);
-        }
-
-        /// <summary>
         /// Add a new database field
         /// </summary>
         /// <param name="field"></param>
-        private void Add(Field field)
+        internal void Add(Field field)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
@@ -467,40 +464,106 @@ namespace DataTable
         }
 
         /// <summary>
-        /// Remove a DataColumn
-        /// Not sure if we need this helper methods as ties us to DataColumns
-        /// </summary>
-        /// <param name="column"></param>
-        public void Remove(DataColumn column)
-        {
-            Field field = new Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
-            Remove(field);
-        }
-
-        /// <summary>
         /// Delete an existing database field
         /// </summary>
         /// <param name="field"></param>
-        private void Remove(Field field)
+        internal bool Remove(Field field)
         {
+            bool delete = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                throw new NotImplementedException();
+                // The problem here is i dont know the length of the column field
+                // without reading the actual record
+
+                BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                UInt16 pointer = 0;
+                byte flag = 0;
+                for (int counter = 0; counter < _size; counter++)
+                {
+                    binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);
+                    byte offset = binaryReader.ReadByte();                      // Read the field offset
+                    flag = binaryReader.ReadByte();                             // Read the status flag
+                    TypeCode typeCode = (TypeCode)binaryReader.ReadByte();      // Read the field Type
+                    sbyte length = binaryReader.ReadSByte();                    // Read the field Length
+                    bool primary = false;                                       // Read if the primary key
+                    if (binaryReader.ReadByte() == 1)
+                    {
+                        primary = true;
+                    }
+                    string name = binaryReader.ReadString();                    // Read the field Name
+
+                    if ((flag == 0) && (name == field.Name))
+                    {
+                        delete = true;
+                        break;
+                    }
+                    else
+                    {
+                        pointer = (UInt16)(pointer + length);
+                    }
+                }
+                binaryReader.Close();
+
+                BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                binaryWriter.Seek(_data + pointer + 1, SeekOrigin.Begin);
+                flag = 1;                                       // Set the delete flag
+                binaryWriter.Write(flag);                       // write the field Flag
+                binaryWriter.Close();                           //
+                binaryWriter.Dispose();                         //
             }
+            return (delete);
         }
 
         /// <summary>
         /// Delete an existing database field by index
         /// </summary>
         /// <param name="field"></param>
-        private void Remove(int index)
+        internal void RemoveAt(int index)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                if (index < _items)
+                if ((index >= 0) && (index < _items))
                 {
+                    // The problem here is that i dont have a pointer index
+                    // and i dont know the length of the column field
+                    // without reading the actual reecord and then itterate
+                    // through the list
+
+                    BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    UInt16 pointer = 0;
+                    byte length = 0;
+                    for (int counter = 0; counter < _items; counter++)
+                    {
+                        binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);
+                        length = binaryReader.ReadByte();
+                        if (counter != index)
+                        {
+                            pointer = (UInt16)(pointer + length);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    binaryReader.Close();
+
+                    BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    binaryWriter.Seek(_data + pointer + 1, SeekOrigin.Begin);
+                    byte flag = 1;                                  // Set the delete flag
+                    binaryWriter.Write(flag);                       // write the field Flag
+                    binaryWriter.Close();                           //
+                    binaryWriter.Dispose();                         //
+
+                    // Move the cache data
+
+                    for (int i = index; i < _items; i++)
+                    {
+                        _fields[i] = _fields[i + 1];
+                    }
+                    _items--;
+                    Array.Resize(ref _fields, _items);
 
                 }
                 else
@@ -511,22 +574,11 @@ namespace DataTable
         }
 
         /// <summary>
-        /// Set or update the DataColumn attributes
-        /// </summary>
-        /// <param name="column"></param>
-        /// <param name="index"></param>
-        public void Set(DataColumn column, int index)
-        {
-            Field field = new Field(column.ColumnName, column.Flag, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
-            Set(field, index);
-        }
-
-        /// <summary>
         /// Set or update the field attributes
         /// </summary>
         /// <param name="field"></param>
         /// <param name="index"></param>
-        private void Set(Field field, int index)
+        internal void Set(Field field, int index)
         {
             // Update the local cache then write to disk but
             // this is more complex as need to reinsert the column name 
@@ -536,7 +588,7 @@ namespace DataTable
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
-                if (index < _items)
+                if ((index >=0) && (index < _items))
                 {
                     _fields[index] = field;
 
@@ -551,11 +603,11 @@ namespace DataTable
                     // could assume the cache is correct
 
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                    UInt16 pointer = _start; // Skip over header and size
+                    UInt16 pointer = 0;
                     byte length = 0;
-                    for (int counter = 0; counter < _size; counter++)
+                    for (int counter = 0; counter < _items; counter++)
                     {
-                        binaryReader.BaseStream.Seek(pointer, SeekOrigin.Begin);
+                        binaryReader.BaseStream.Seek(_start + pointer, SeekOrigin.Begin);
                         length = binaryReader.ReadByte();
                         if (counter != index)
                         {
@@ -604,14 +656,14 @@ namespace DataTable
                         binaryWriter.Write(_data);                      // Write pointer to new data area
                         binaryWriter.Write(_items);                     // write new number of records
                         binaryWriter.Close();                           //
-                        binaryWriter.Dispose();                         //
+                        binaryWriter.Dispose();                         // 37
                     }
                     else
                     {
                         // The new field name is shorter so can overrite
 
                         BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.Open));
-                        binaryWriter.Seek(pointer + 2, SeekOrigin.Begin);
+                        binaryWriter.Seek(_start + pointer + 2, SeekOrigin.Begin);
 
                         // Keep the field space as original
                         // No need to overwrite the flag
@@ -637,22 +689,18 @@ namespace DataTable
         }
 
         /// <summary>
-        /// Get the DataColumn attributes
+        /// Get the DataColumn
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        internal DataColumn Get(int index)
+        internal Field Get(int index)
         {
-            if (index < _items)
+            if ((index >= 0) && (index < _items))
             {
                 // Build from cache
 
-                DataColumn column = new DataColumn(_fields[index].Name);
-                column.Flag = _fields[index].Flag;
-                column.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), _fields[index].Type));
-                column.Primary = _fields[index].Primary;
-                column.MaxLength = _fields[index].Length;
-                return (column);
+                Field field = _fields[index];
+                return (field);
             }
             else
             {

@@ -18,19 +18,22 @@ namespace DataTable
                 DataType = System.Type.GetType("System.String"),
                 MaxLength = 10
             };
-            dh.Add(c);
+            DataHandler.Field f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Add(f);
             c = new DataColumn
             {
                 ColumnName = "second",
                 DataType = System.Type.GetType("System.String")
             };
-            dh.Add(c);
+            f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Add(f);
             c = new DataColumn
             {
                 ColumnName = "third",
                 DataType = System.Type.GetType("System.Int16")
             };
-            dh.Add(c);
+            f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Add(f);
 
             // Test row routines
 

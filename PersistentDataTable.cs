@@ -10,7 +10,7 @@ namespace DataTable
 {
     public class PersistentDataTable : IDisposable
     {
-        #region Variables
+        #region Fields
 
         private string _path = "";
         private string _name = "PersistentDataTable";

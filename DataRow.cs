@@ -60,7 +60,7 @@ namespace DataTable
                 {
                     for (int index = 0; index < _handler.Items; index++)
                     {
-                        if (_handler.Get(index).ColumnName == columnName)
+                        if (_handler.Get(index).Name == columnName)
                         {
                             columnIndex = index;
                             break;
@@ -96,7 +96,7 @@ namespace DataTable
                 {
                     for (int index = 0; index < _handler.Items; index++)
                     {
-                        if (_handler.Get(index).ColumnName == columnName)
+                        if (_handler.Get(index).Name == columnName)
                         {
                             columnIndex = index;
                             break;
