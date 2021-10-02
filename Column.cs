@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Data;
+using DataTableLibrary;
 
 namespace DataTable
 {
@@ -10,7 +10,8 @@ namespace DataTable
             // Test the column routines
 
             DataHandler dh = new DataHandler("", "test");
-            dh.Open(true);
+            dh.Reset();
+            dh.Open();
             DataColumn c = new DataColumn();
             c.ColumnName = "first";
             c.DataType = System.Type.GetType("System.String");

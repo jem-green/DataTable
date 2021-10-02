@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using DataTableLibrary;
 
 namespace DataTable
 {
@@ -11,7 +12,8 @@ namespace DataTable
             // Test the row routines
 
             DataHandler dh = new DataHandler("", "test");
-            dh.Open(true);
+            dh.Reset();
+            dh.Open();
             DataColumn c = new DataColumn
             {
                 ColumnName = "first",
@@ -41,37 +43,40 @@ namespace DataTable
             r[0] = "hello";
             r[1] = "goodby";
             r[2] = 1;
-            dh.Create(r);
+            object[] or = new object[3] { r[0], r[1], r[2] };
+            dh.Create(or);
 
             r = new DataRow(dh);
             r[0] = "begging";
             r[1] = "end";
             r[2] = 2;
-            dh.Create(r);
+            or = new object[3] { r[0], r[1], r[2] };
+            dh.Create(or);
 
             r = new DataRow(dh);
             r[0] = "from";
             r[1] = "to";
             r[2] = 3;
-            dh.Create(r);
+            or = new object[3] { r[0], r[1], r[2] };
+            dh.Create(or);
 
             r = new DataRow(dh);
             r[0] = "start";
             r[1] = "finish";
             r[2] = 4;
-            dh.Create(r);
+            or = new object[3] { r[0], r[1], r[2] };
+            dh.Create(or);
 
             // Get the data
 
-            Console.WriteLine("Records=" + dh.Records);
+            Console.WriteLine("Records=" + dh.Size);
 
-            for (int i = 0; i < dh.Records; i++)
+            for (int i = 0; i < dh.Size; i++)
             {
-                DataRow dr;
-                dr = dh.Read(i);
+                or = dh.Read(i);
                 for (int j=0; j < dh.Items; j++)
                 {
-                    Console.WriteLine(i + " " + j + " '" + dr.ItemArray[j] + "'");
+                    Console.WriteLine(i + " " + j + " '" + or[j] + "'");
                 }
             }
 
@@ -79,18 +84,16 @@ namespace DataTable
 
             dh.Delete(2);
 
-            Console.WriteLine("Records=" + dh.Records);
+            Console.WriteLine("Records=" + dh.Size);
 
-            for (int i = 0; i < dh.Records; i++)
+            for (int i = 0; i < dh.Size; i++)
             {
-                DataRow dr;
-                dr = dh.Read(i);
+                or = dh.Read(i);
                 for (int j = 0; j < dh.Items; j++)
                 {
-                    Console.WriteLine(i + " " + j + " '" + dr.ItemArray[j] + "'");
+                    Console.WriteLine(i + " " + j + " '" + or[j] + "'");
                 }
             }
-
         }
     }
 }

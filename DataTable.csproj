@@ -5,7 +5,11 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>DataTable</AssemblyName>
     <RootNamespace>DataTable</RootNamespace>
-    <StartupObject>DataTable.Column</StartupObject>
+    <StartupObject>DataTable.Row</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataTableLibrary\DataTableLibrary.csproj" />
+  </ItemGroup>
 
 </Project>

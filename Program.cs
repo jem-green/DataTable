@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using DataTableLibrary;
 
 namespace DataTable
 {
@@ -50,10 +51,10 @@ namespace DataTable
 
             PersistentDataTable pdt = new PersistentDataTable("test_table",true);
 
-            DataColumn pdc;
+            DataTableLibrary.DataColumn pdc;
             try
             {
-                pdc = new DataColumn("id");
+                pdc = new DataTableLibrary.DataColumn("id");
                 pdc.DataType = System.Type.GetType("System.Int32");
                 //pdc.Unique = true;
                 pdt.Columns.Add(pdc);
@@ -62,20 +63,20 @@ namespace DataTable
 
             try
             {
-                pdc = new DataColumn("name");
+                pdc = new DataTableLibrary.DataColumn("name");
                 pdc.DataType = System.Type.GetType("System.String");
                 pdt.Columns.Add(pdc);
             }
             catch { };
 
-            DataRow pdr = pdt.NewRow();
+            DataTableLibrary.DataRow pdr = pdt.NewRow();
             pdr["id"] = 1;
             pdr["name"] = "jeremy";
             Console.WriteLine("Fields=" + pdr.ItemArray.Length);
             pdt.Rows.Add(pdr);
             Console.WriteLine("Records=" + pdt.Rows.Count);
 
-            foreach (DataRow r in pdt.Rows)
+            foreach (DataTableLibrary.DataRow r in pdt.Rows)
             {
                 Console.WriteLine(r["id"] + "," + r["name"]);
             }
@@ -87,8 +88,8 @@ namespace DataTable
             }
             catch { };
 
-            DataRow[] prs = pdt.Select();
-            foreach (DataRow r in prs)
+            DataTableLibrary.DataRow[] prs = pdt.Select();
+            foreach (DataTableLibrary.DataRow r in prs)
             {
                 Console.WriteLine(r["id"] + "," + r["name"]);
             }
