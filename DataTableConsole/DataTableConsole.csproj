@@ -3,9 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AssemblyName>DataTable</AssemblyName>
-    <RootNamespace>DataTable</RootNamespace>
-    <StartupObject>DataTable.Column</StartupObject>
+    <StartupObject>DataTableConsole.Column</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

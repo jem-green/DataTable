@@ -2,7 +2,7 @@
 using System.Data;
 using DataTableLibrary;
 
-namespace DataTable
+namespace DataTableConsole
 {
     class Program
     {

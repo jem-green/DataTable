@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using DataTableLibrary;
 
-namespace DataTable
+namespace DataTableConsole
 {
     class Row
     {
@@ -20,21 +20,21 @@ namespace DataTable
                 DataType = System.Type.GetType("System.String"),
                 MaxLength = 10
             };
-            DataHandler.Field f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            DataHandler.Field f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
             dh.Add(f);
             c = new DataColumn
             {
                 ColumnName = "second",
                 DataType = System.Type.GetType("System.String")
             };
-            f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
             dh.Add(f);
             c = new DataColumn
             {
                 ColumnName = "third",
                 DataType = System.Type.GetType("System.Int16")
             };
-            f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
             dh.Add(f);
 
             // Test row routines
