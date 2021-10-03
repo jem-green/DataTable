@@ -28,6 +28,7 @@ namespace DataTable
             c.DataType = System.Type.GetType("System.Int16");
             f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
             dh.Add(f);
+            Console.WriteLine("Items=" + dh.Items);
 
             // 
 
@@ -43,6 +44,7 @@ namespace DataTable
             c.DataType = System.Type.GetType("System.String");
             f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
             dh.Set(f, 1);
+            Console.WriteLine("Items=" + dh.Items);
 
             foreach (DataHandler.Field field in dh.Fields)
             {
@@ -56,6 +58,7 @@ namespace DataTable
             c.DataType = System.Type.GetType("System.String");
             f = new DataHandler.Field(c.ColumnName, c.Flag, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
             dh.Set(f, 1);
+            Console.WriteLine("Items=" + dh.Items);
 
             foreach (DataHandler.Field field in dh.Fields)
             {
@@ -67,7 +70,7 @@ namespace DataTable
 
             // Remove - column
 
-            Console.WriteLine("Remove");
+            Console.WriteLine("RemoveAt");
             c = new DataColumn();
             c.ColumnName = "second";
             dh.RemoveAt(1);
