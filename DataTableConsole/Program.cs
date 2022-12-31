@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Data;
-using Chilkat;
 using DataTableLibrary;
 
 namespace DataTableConsole
