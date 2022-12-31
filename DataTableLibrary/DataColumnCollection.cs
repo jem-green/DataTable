@@ -53,7 +53,7 @@ namespace DataTableLibrary
                 }
                 else
                 {
-                    DataHandler.Field field = _handler.Get(index);
+                    DataHandler.Property field = _handler.Get(index);
                     DataColumn column = new DataColumn(field.Name);
                     column.Flag = field.Flag;
                     column.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), field.Type));
@@ -70,7 +70,7 @@ namespace DataTableLibrary
                 }
                 else
                 {
-                    DataHandler.Field field = new DataHandler.Field(value.ColumnName, value.Flag, value.Ordinal,Type.GetTypeCode(value.DataType), value.MaxLength, value.Primary);
+                    DataHandler.Property field = new DataHandler.Property(value.ColumnName, value.Flag, value.Ordinal,Type.GetTypeCode(value.DataType), value.MaxLength, value.Primary);
                     _handler.Set(field, index);
                 }
             }
@@ -115,7 +115,7 @@ namespace DataTableLibrary
 
             if ((match == false) || (_handler.Items == 0))
             {
-                DataHandler.Field field = new DataHandler.Field(column.ColumnName, column.Flag, column.Ordinal, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
+                DataHandler.Property field = new DataHandler.Property(column.ColumnName, column.Flag, column.Ordinal, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
                 _handler.Add(field);
             }
             else
@@ -144,7 +144,7 @@ namespace DataTableLibrary
 
             if (match == true)
             {
-                DataHandler.Field field = new DataHandler.Field(column.ColumnName, column.Flag, column.Ordinal, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
+                DataHandler.Property field = new DataHandler.Property(column.ColumnName, column.Flag, column.Ordinal, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
                 _handler.Remove(field);
                 removed = true;
             }
@@ -173,7 +173,7 @@ namespace DataTableLibrary
 
             if (match == true)
             {
-                DataHandler.Field field = new DataHandler.Field(column.ColumnName, column.Flag, column.Ordinal, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
+                DataHandler.Property field = new DataHandler.Property(column.ColumnName, column.Flag, column.Ordinal, Type.GetTypeCode(column.DataType), column.MaxLength, column.Primary);
                 _handler.Add(field);
             }
             else
@@ -251,7 +251,7 @@ namespace DataTableLibrary
             {
                 //Return the current element and then on next function call 
                 //resume from next element rather than starting all over again;
-                DataHandler.Field field = _handler.Get(cursor);
+                DataHandler.Property field = _handler.Get(cursor);
                 DataColumn column = new DataColumn(field.Name);
                 column.Flag = field.Flag;
                 column.DataType = Type.GetType("System." + Enum.GetName(typeof(TypeCode), field.Type));

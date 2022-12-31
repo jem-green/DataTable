@@ -13,7 +13,28 @@ namespace DataTableLibrary
         /*
         Solve problem of passing the PersistentDataTable to the other
         classes, so nest the class 
-        
+
+                  1         2
+        012345678901234567890
+        ~--+-¬+~--+-¬.......~--+
+           |  |   |            |
+           |  |   |            +- Start of data
+           |  |   +- Property (6 + name)..
+           |  +- Field (1) 
+           +- Header (6)
+
+        +----------------------+ <- 0
+        | Header (6)           | 
+        +----------------------+ <- 6
+        | Field (1)            |
+        +----------------------+ <- 7 [_start]
+        | Propertyx (6 + name) |
+        |         ...          |
+        +----------------------+ <- yy [_data]
+        |         data         |     
+        |         ...          |  
+        +----------------------+ <- zz [_pointer]
+
         Header
         ------
         
@@ -25,6 +46,22 @@ namespace DataTableLibrary
         -----
          
         0 - unsigned byte - number of fields (0-255) _items
+
+          
+        Field Properties
+        ----------------
+
+        The offset is needed if the field is shortened.
+
+        0 - unsigned byte - Offset assuming a field name is less than 255 characters (0-255)
+        0 - unsigned byte - Flag 0 = normal, 1 = deleted, 2 = spare
+        0 - unsigned byte - Field order
+        0 - unsigned byte - Field type enum value (0-255)
+        0 - unsigned byte - If string or blob set the length (0-255)
+        0 - unsigned byte - Primary key 0 - No, 1 - Yes (0-1)
+        00 - LEB128 - Length of element handled by the binary writer and reader in LEB128 format
+        bytes - string
+        ...
 
         From the type definition
         
@@ -47,18 +84,7 @@ namespace DataTableLibrary
         DateTime	16 - A type representing a date and time value.
         ?
         String      18 - A sealed class type representing Unicode character strings.
-         
-        The offset is needed if the field is shortened.
 
-        0 - unsigned byte - Offset assuming a field name is less than 255 characters (0-255)
-        0 - unsigned byte - Flag 0 = normal, 1 = deleted, 2 = spare
-        0 - unsigned byte - Field order
-        0 - unsigned byte - Field type enum value (0-255)
-        0 - unsigned byte - If string or blob set the length (0-255)
-        0 - unsigned byte - Primary key 0 - No, 1 - Yes (0-1)
-        00 - LEB128 - Length of element handled by the binary writer and reader in LEB128 format
-        bytes - string
-        ...
         
         Data
         ----
@@ -99,6 +125,7 @@ namespace DataTableLibrary
 
         private string _path = "";
         private string _name = "";
+        private string _index = "";
 
         private readonly object _lockObject = new Object();
         private UInt16 _size = 0;               // number of elements
@@ -106,9 +133,9 @@ namespace DataTableLibrary
         private UInt16 _pointer = 7;            // Pointer to current element offset from the data area
         private UInt16 _data = 7;               // pointer to start of data area
         private byte _items = 0;                // number of field items
-        private Field[] _fields;                // Cache of fields
+        private Property[] _properties;         // Cache of fields
 
-        internal struct Field
+        internal struct Property
         {
             string _name;
             byte _flag;
@@ -117,7 +144,7 @@ namespace DataTableLibrary
             sbyte _length;
             bool _primary;
 
-            internal Field(string name, byte flag, byte order, TypeCode type, sbyte length, bool primary)
+            internal Property(string name, byte flag, byte order, TypeCode type, sbyte length, bool primary)
             {
                 _name = name;
                 _flag = flag;
@@ -218,6 +245,14 @@ namespace DataTableLibrary
         {
             _path = path;
             _name = name;
+            _index = name;
+        }
+
+        public DataHandler(string path, string name, string index)
+        {
+            _path = path;
+            _name = name;
+            _index = index;
         }
 
         #endregion
@@ -247,6 +282,18 @@ namespace DataTableLibrary
             }
         }
 
+        public string Index
+        {
+            set
+            {
+                _index = value;
+            }
+            get
+            {
+                return (_index);
+            }
+        }
+
         public UInt16 Size
         {
             get
@@ -263,11 +310,11 @@ namespace DataTableLibrary
             }
         }
 
-        internal Field[] Fields
+        internal Property[] Fields
         {
             get
             {
-                return (_fields);
+                return (_properties);
             }
         }
 
@@ -286,8 +333,9 @@ namespace DataTableLibrary
         // Open -
         // Close - 
         // Reset -
+        // Index -
         //
-        // Column methods
+        // Column methods (ARSG)
         // Add -
         // Remove -
         // Set -
@@ -298,6 +346,7 @@ namespace DataTableLibrary
         // Read -
         // Update -
         // Delete - 
+        //
 
         #region General Methods
 
@@ -319,7 +368,7 @@ namespace DataTableLibrary
                 _data = binaryReader.ReadUInt16();                      // Read in the data pointer
                 _items = binaryReader.ReadByte();                       // Read in the number of fields
 
-                Array.Resize(ref _fields, _items);
+                Array.Resize(ref _properties, _items);
                 UInt16 pointer = 0;
                 for (int count = 0; count < _items; count++)
                 {
@@ -337,8 +386,8 @@ namespace DataTableLibrary
                     string name = binaryReader.ReadString();                    // Read the field Name
                     if (flag == 0)  // Not deleted or spare so add rather than skip
                     {
-                        Field field = new Field(name, flag, order, typeCode, length, primary);
-                        _fields[count] = field;
+                        Property field = new Property(name, flag, order, typeCode, length, primary);
+                        _properties[count] = field;
                     }
                     pointer = (UInt16)(pointer + offset);
                 }
@@ -356,13 +405,14 @@ namespace DataTableLibrary
             bool reset;
             // Reset the file
             string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
             BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
             binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
 
-            _size = 0;
+            _size = 0;                                  // Reset the number of elements
             _pointer = 0;                               // Offset from the data areas so zero
-            _data = _start;                             // Start of the data 3 x 16 bit + 1 x 8 bit = 
-            _items = 0;
+            _data = _start;                             // Start of the field area 3 x 16 bit + 1 x 8 bit = 
+            _items = 0;                                 // Number of fields
 
             binaryWriter.Write(_size);                  // Write the size of data
             binaryWriter.Write(_pointer);               // Write pointer to new current record offset from the data area
@@ -371,13 +421,47 @@ namespace DataTableLibrary
             binaryWriter.BaseStream.SetLength(7);       // Fix the size as we are resetting
             binaryWriter.Close();
 
-            // Create the index
+            // Recreate the index
 
-            binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".idx", FileMode.OpenOrCreate));
+            binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
             binaryWriter.BaseStream.SetLength(0);
             binaryWriter.Close();
+
+            // Clear the field cache
+
+            Array.Resize(ref _properties, _items);
+
             reset = true;
             return (reset);
+        }
+
+        /// <summary>
+        /// Clear the database file and clear any index files
+        /// </summary>
+        internal bool Clear()
+        {
+            bool clear;
+            // Reset the file
+            string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
+            BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filenamePath + ".dbf", FileMode.OpenOrCreate));
+            binaryWriter.Seek(0, SeekOrigin.Begin); // Move to start of the file
+
+            _size = 0;                                  // Zero the sizw of the data
+            _pointer = 0;                               // Offset from the data areas so zero
+
+            binaryWriter.Write(_size);                  // Write the size of data
+            binaryWriter.Write(_pointer);               // Write pointer to new current record offset from the data area
+            binaryWriter.BaseStream.SetLength(_data);   // Fix the size as we are resetting
+            binaryWriter.Close();                       //
+
+            // Re-create the index
+
+            binaryWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.OpenOrCreate));
+            binaryWriter.BaseStream.SetLength(0);
+            binaryWriter.Close();
+            clear = true;
+            return (clear);
         }
 
         /// <summary>
@@ -387,13 +471,17 @@ namespace DataTableLibrary
         {
             bool close = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
 
             if (File.Exists(filenamePath + ".dbf") == true)
             {
                 // Need to delete both data and index
                 File.Delete(filenamePath + ".dbf");
                 // Assumption here is the the index also exists
-                File.Delete(filenamePath + ".idx");
+                if (File.Exists(indexPath + ".idx") == true)
+                {
+                    File.Delete(indexPath + ".idx");
+                }
                 close = true;
             }
             return (close);
@@ -406,7 +494,7 @@ namespace DataTableLibrary
         /// Add a new database field
         /// </summary>
         /// <param name="field"></param>
-        internal void Add(Field field)
+        internal void Add(Property field)
         {
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
@@ -432,8 +520,8 @@ namespace DataTableLibrary
 
                 // Update the local cache
 
-                Array.Resize(ref _fields, _items + 1);
-                _fields[_items] = field;
+                Array.Resize(ref _properties, _items + 1);
+                _properties[_items] = field;
 
                 // Calcualte the data size
 
@@ -487,10 +575,10 @@ namespace DataTableLibrary
         /// Delete an existing database field
         /// </summary>
         /// <param name="field"></param>
-        internal bool Remove(Field field)
+        internal bool Remove(Property field)
         {
             int index = 0;
-            bool delete = false;
+            bool remove = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
             lock (_lockObject)
             {
@@ -521,7 +609,7 @@ namespace DataTableLibrary
                     if ((flag == 0) && (name == field.Name))
                     {
                         index = counter;
-                        delete = true;
+                        remove = true;
                         break;
                     }
                     else
@@ -539,19 +627,19 @@ namespace DataTableLibrary
                 binaryWriter.Dispose();                                     //
 
                 // Move the cache data downwards
-                // The challnge is then ensuring that the 
+                // The challenge is then ensuring that the 
                 // deleted field is skipped when read in
                 // the other methods
 
                 for (int i = index; i < _items - 1; i++)
                 {
-                    _fields[i] = _fields[i + 1];
+                    _properties[i] = _properties[i + 1];
                 }
                 _items--;
-                Array.Resize(ref _fields, _items);
+                Array.Resize(ref _properties, _items);
 
             }
-            return (delete);
+            return (remove);
         }
 
         /// <summary>
@@ -567,7 +655,7 @@ namespace DataTableLibrary
                 {
                     // The problem here is that i dont have a pointer index
                     // and i dont know the length of the column field
-                    // without reading the actual reecord and then itterate
+                    // without reading the actual reecord and then itterating
                     // through the list
 
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
@@ -602,10 +690,10 @@ namespace DataTableLibrary
 
                     for (int i = index; i < _items-1; i++)
                     {
-                        _fields[i] = _fields[i + 1];
+                        _properties[i] = _properties[i + 1];
                     }
                     _items--;
-                    Array.Resize(ref _fields, _items);
+                    Array.Resize(ref _properties, _items);
 
                 }
                 else
@@ -620,7 +708,7 @@ namespace DataTableLibrary
         /// </summary>
         /// <param name="field"></param>
         /// <param name="index"></param>
-        internal void Set(Field field, int index)
+        internal void Set(Property field, int index)
         {
             // Update the local cache then write to disk but
             // this is more complex as need to reinsert the column name 
@@ -631,7 +719,7 @@ namespace DataTableLibrary
             {
                 if ((index >=0) && (index < _items))
                 {
-                    _fields[index] = field;
+                    _properties[index] = field;
 
                     // Calculate the new data size
 
@@ -740,14 +828,14 @@ namespace DataTableLibrary
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        internal Field Get(int index)
+        internal Property Get(int index)
         {
             if ((index >= 0) && (index < _items))
             {
                 // Build from cache, but could 
                 // have an option to rebuild from disk
 
-                Field field = _fields[index];
+                Property field = _properties[index];
                 return (field);
             }
             else
@@ -768,11 +856,12 @@ namespace DataTableLibrary
         {
             bool created = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
                 // append the new pointer the new index file
 
-                BinaryWriter indexWriter = new BinaryWriter(new FileStream(filenamePath + ".idx", FileMode.Append));
+                BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Append));
                 indexWriter.Write(_pointer);  // Write the pointer
 
                 int offset = 0;
@@ -780,7 +869,7 @@ namespace DataTableLibrary
                 for (int i = 0; i < row.Length; i++)
                 {
                     object data = row[i];
-                    switch (_fields[i].Type)
+                    switch (_properties[i].Type)
                     {
                         case TypeCode.Int16:
                             {
@@ -794,7 +883,7 @@ namespace DataTableLibrary
                             }
                         case TypeCode.String:
                             {
-                                int length = _fields[i].Length;
+                                int length = _properties[i].Length;
                                 if (length < 0)
                                 {
                                     length = Convert.ToString(data).Length;
@@ -841,7 +930,7 @@ namespace DataTableLibrary
                 for (int i = 0; i < row.Length; i++)
                 {
                     object data = row[i];
-                    switch (_fields[i].Type)
+                    switch (_properties[i].Type)
                     {
                         case TypeCode.Int16:
                             {
@@ -856,19 +945,19 @@ namespace DataTableLibrary
                         case TypeCode.String:
                             {
                                 string text = Convert.ToString(data);
-                                if (_fields[i].Length < 0)
+                                if (_properties[i].Length < 0)
                                 {
                                     binaryWriter.Write(text);
                                 }
                                 else
                                 {
-                                    if (text.Length > _fields[i].Length)
+                                    if (text.Length > _properties[i].Length)
                                     {
-                                        text = text.Substring(0, _fields[i].Length);
+                                        text = text.Substring(0, _properties[i].Length);
                                     }
                                     else
                                     {
-                                        text = text.PadRight(_fields[i].Length, '\0');
+                                        text = text.PadRight(_properties[i].Length, '\0');
                                     }
                                     binaryWriter.Write(text);
                                 }
@@ -902,10 +991,13 @@ namespace DataTableLibrary
                 {
                     data = new object[Items];
                     string filenamePath = System.IO.Path.Combine(_path, _name);
+                    string indexPath = System.IO.Path.Combine(_path, _index);
+
                     // Need to search the index file
 
-                    BinaryReader indexReader = new BinaryReader(new FileStream(filenamePath + ".idx", FileMode.Open));
                     BinaryReader binaryReader = new BinaryReader(new FileStream(filenamePath + ".dbf", FileMode.Open));
+                    BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
+
                     indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
                     UInt16 pointer = indexReader.ReadUInt16();                                              // Reader the pointer from the index file
                     binaryReader.BaseStream.Seek(_data + pointer, SeekOrigin.Begin);                                // Move to the correct location in the data file
@@ -913,7 +1005,7 @@ namespace DataTableLibrary
                     byte flag = binaryReader.ReadByte();
                     for (int count = 0; count < _items; count++)
                     {
-                        switch (_fields[count].Type)
+                        switch (_properties[count].Type)
                         {
                             case TypeCode.Int16:
                                 {
@@ -950,6 +1042,7 @@ namespace DataTableLibrary
         {
             bool updated = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
                 if ((index >= 0) && (index <= _size))
@@ -959,7 +1052,7 @@ namespace DataTableLibrary
                     // the index
                     // if less then overwite the space with the new record
 
-                    BinaryReader indexReader = new BinaryReader(new FileStream(filenamePath + ".idx", FileMode.Open));
+                    BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
                     indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
                     UInt16 pointer = indexReader.ReadUInt16();                                      // Reader the pointer from the index file
                     UInt16 offset = indexReader.ReadUInt16();
@@ -971,7 +1064,7 @@ namespace DataTableLibrary
                     for (int i = 0; i < row.Length; i++)
                     {
                         object data = row[i];
-                        switch (_fields[i].Type)
+                        switch (_properties[i].Type)
                         {
                             case TypeCode.Int16:
                                 {
@@ -985,7 +1078,7 @@ namespace DataTableLibrary
                                 }
                             case TypeCode.String:
                                 {
-                                    int l = _fields[i].Length;
+                                    int l = _properties[i].Length;
                                     if (l < 0)
                                     {
                                         l = Convert.ToString(data).Length;
@@ -1016,7 +1109,7 @@ namespace DataTableLibrary
                         for (int i = 0; i < row.Length; i++)
                         {
                             object data = row[i];
-                            switch (_fields[i].Type)
+                            switch (_properties[i].Type)
                             {
                                 case TypeCode.Int16:
                                     {
@@ -1031,19 +1124,19 @@ namespace DataTableLibrary
                                 case TypeCode.String:
                                     {
                                         string text = Convert.ToString(data);
-                                        if (_fields[i].Length < 0)
+                                        if (_properties[i].Length < 0)
                                         {
                                             binaryWriter.Write(text);
                                         }
                                         else
                                         {
-                                            if (text.Length > _fields[i].Length)
+                                            if (text.Length > _properties[i].Length)
                                             {
-                                                text = text.Substring(0, _fields[i].Length);
+                                                text = text.Substring(0, _properties[i].Length);
                                             }
                                             else
                                             {
-                                                text = text.PadRight(_fields[i].Length, '\0');
+                                                text = text.PadRight(_properties[i].Length, '\0');
                                             }
                                             binaryWriter.Write(text);
                                         }
@@ -1066,7 +1159,7 @@ namespace DataTableLibrary
 
                         // Overwrite the index to use the new location at the end of the file
 
-                        BinaryWriter indexWriter = new BinaryWriter(new FileStream(filenamePath + ".idx", FileMode.Open));
+                        BinaryWriter indexWriter = new BinaryWriter(new FileStream(indexPath + ".idx", FileMode.Open));
                         indexWriter.Seek(index * 4, SeekOrigin.Begin);   // Get the index pointer
                         indexWriter.Write(_pointer);
                         indexWriter.Close();
@@ -1091,7 +1184,7 @@ namespace DataTableLibrary
                         for (int i = 0; i < row.Length; i++)
                         {
                             object data = row[i];
-                            switch (_fields[i].Type)
+                            switch (_properties[i].Type)
                             {
                                 case TypeCode.Int16:
                                     {
@@ -1106,19 +1199,19 @@ namespace DataTableLibrary
                                 case TypeCode.String:
                                     {
                                         string text = Convert.ToString(data);
-                                        if (_fields[i].Length < 0)
+                                        if (_properties[i].Length < 0)
                                         {
                                             binaryWriter.Write(text);
                                         }
                                         else
                                         {
-                                            if (text.Length > _fields[i].Length)
+                                            if (text.Length > _properties[i].Length)
                                             {
-                                                text = text.Substring(0, _fields[i].Length);
+                                                text = text.Substring(0, _properties[i].Length);
                                             }
                                             else
                                             {
-                                                text = text.PadRight(_fields[i].Length, '\0');
+                                                text = text.PadRight(_properties[i].Length, '\0');
                                             }
                                             binaryWriter.Write(text);
                                         }
@@ -1142,6 +1235,7 @@ namespace DataTableLibrary
         {
             bool deleted = false;
             string filenamePath = System.IO.Path.Combine(_path, _name);
+            string indexPath = System.IO.Path.Combine(_path, _index);
             lock (_lockObject)
             {
                 if ((index >= 0) && (index <= _size))
@@ -1153,7 +1247,7 @@ namespace DataTableLibrary
                     _size--;
                     binaryWriter.Write(_size);                  // Write the new size
 
-                    BinaryReader indexReader = new BinaryReader(new FileStream(filenamePath + ".idx", FileMode.Open));
+                    BinaryReader indexReader = new BinaryReader(new FileStream(indexPath + ".idx", FileMode.Open));
                     indexReader.BaseStream.Seek(index * 4, SeekOrigin.Begin);                               // Get the pointer from the index file
                     UInt16 pointer = indexReader.ReadUInt16();
                     indexReader.Close();
@@ -1167,7 +1261,7 @@ namespace DataTableLibrary
 
                     // Overwrite the index
 
-                    FileStream stream = new FileStream(filenamePath + ".idx", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                    FileStream stream = new FileStream(indexPath + ".idx", FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                     indexReader = new BinaryReader(stream);
                     BinaryWriter indexWriter = new BinaryWriter(stream);
 
@@ -1197,11 +1291,12 @@ namespace DataTableLibrary
         #endregion
         #region Private
 
-        private Field GetField(int index)
+
+        private Property GetField(int index)
         {
             if (index < _size)
             {
-                Field field = new Field();
+                Property field = new Property();
                 string filenamePath = System.IO.Path.Combine(_path, _name);
                 lock (_lockObject)
                 {
@@ -1228,7 +1323,7 @@ namespace DataTableLibrary
                                 primary = true;
                             }
                             string name = binaryReader.ReadString();                // Read the field Name
-                            field = new Field(name, flag, order, typeCode, length, primary);
+                            field = new Property(name, flag, order, typeCode, length, primary);
                             break;
                         }
                     }

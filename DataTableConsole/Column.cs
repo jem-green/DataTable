@@ -17,23 +17,23 @@ namespace DataTableConsole
             c.Ordinal = 1;
             c.DataType = System.Type.GetType("System.String");
             c.MaxLength = 10;
-            DataHandler.Field f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
-            dh.Add(f);
+            DataHandler.Property p = new DataHandler.Property(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Add(p);
             c = new DataColumn();
             c.ColumnName = "second";
             c.DataType = System.Type.GetType("System.String");
-            f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
-            dh.Add(f);
+            p = new DataHandler.Property(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Add(p);
             c = new DataColumn();
             c.ColumnName = "third";
             c.DataType = System.Type.GetType("System.Int16");
-            f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
-            dh.Add(f);
+            p = new DataHandler.Property(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Add(p);
             Console.WriteLine("Items=" + dh.Items);
 
-            // 
+            // Display the data
 
-            foreach (DataHandler.Field field in dh.Fields)
+            foreach (DataHandler.Property field in dh.Fields)
             {
                 Console.WriteLine(field.ToString());
             }
@@ -43,11 +43,11 @@ namespace DataTableConsole
             c = new DataColumn();
             c.ColumnName = "2";
             c.DataType = System.Type.GetType("System.String");
-            f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
-            dh.Set(f, 1);
+            p = new DataHandler.Property(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Set(p, 1);
             Console.WriteLine("Items=" + dh.Items);
 
-            foreach (DataHandler.Field field in dh.Fields)
+            foreach (DataHandler.Property field in dh.Fields)
             {
                 Console.WriteLine(field.ToString());
             }
@@ -57,17 +57,17 @@ namespace DataTableConsole
             c = new DataColumn();
             c.ColumnName = "deuxième";
             c.DataType = System.Type.GetType("System.String");
-            f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
-            dh.Set(f, 1);
+            p = new DataHandler.Property(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Set(p, 1);
             Console.WriteLine("Items=" + dh.Items);
 
-            foreach (DataHandler.Field field in dh.Fields)
+            foreach (DataHandler.Property field in dh.Fields)
             {
                 Console.WriteLine(field.ToString());
             }
 
-            f = dh.Get(0);
-            Console.WriteLine("Get(0)" + f.Name);
+            p = dh.Get(0);
+            Console.WriteLine("Get(0)" + p.Name);
 
             // Remove - column
 
@@ -76,7 +76,7 @@ namespace DataTableConsole
             c.ColumnName = "second";
             dh.RemoveAt(1);
 
-            foreach (DataHandler.Field field in dh.Fields)
+            foreach (DataHandler.Property field in dh.Fields)
             {
                 Console.WriteLine(field.ToString());
             }
@@ -86,13 +86,15 @@ namespace DataTableConsole
             Console.WriteLine("Remove");
             c = new DataColumn();
             c.ColumnName = "second";
-            f = new DataHandler.Field(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
-            dh.Remove(f);
+            p = new DataHandler.Property(c.ColumnName, c.Flag, c.Ordinal, Type.GetTypeCode(c.DataType), c.MaxLength, c.Primary);
+            dh.Remove(p);
 
-            foreach (DataHandler.Field field in dh.Fields)
+            foreach (DataHandler.Property field in dh.Fields)
             {
                 Console.WriteLine(field.ToString());
             }
+
+            //
 
         }
     }

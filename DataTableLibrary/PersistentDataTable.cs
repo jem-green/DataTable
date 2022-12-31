@@ -14,6 +14,7 @@ namespace DataTableLibrary
 
         private string _path = "";
         private string _name = "PersistentDataTable";
+        private string _index = "PersistentDataTable";
 
         private DataColumnCollection _columns;
         private DataRowCollection _rows;
@@ -164,6 +165,12 @@ namespace DataTableLibrary
         #endregion
         #region Methods
 
+        public void Clear()
+        {
+            
+            _handler = null;
+        }
+
         public DataRow NewRow()
         {
             DataRow dr = new DataRow(this);
@@ -208,6 +215,11 @@ namespace DataTableLibrary
         public void Select(string filterExpression ,string sort)
         {
             throw new NotImplementedException();
+        }
+
+        public void Close()
+        {
+            _handler.Close();
         }
 
         public void Dispose()

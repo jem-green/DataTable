@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using Chilkat;
 using DataTableLibrary;
 
 namespace DataTableConsole
@@ -27,9 +28,9 @@ namespace DataTableConsole
             dt.Rows.Add(dr);
             Console.WriteLine("Records=" + dt.Rows.Count);
 
-            foreach (System.Data.DataRow r in dt.Rows)
+            foreach (System.Data.DataRow row in dt.Rows)
             {
-                Console.WriteLine(r["id"] + "," + r["name"]);
+                Console.WriteLine(row["id"] + "," + row["name"]);
             }
 
             try
@@ -40,10 +41,14 @@ namespace DataTableConsole
             catch { };
 
             System.Data.DataRow[] rs = dt.Select();
-            foreach (System.Data.DataRow r in rs)
+            foreach (System.Data.DataRow row in rs)
             {
-                Console.WriteLine(r["id"] + "," + r["name"]);
+                Console.WriteLine(row["id"] + "," + row["name"]);
             }
+
+            System.Data.DataRow[] r = dt.Select("jeremy");
+
+            dt.Clear();
 
             dt.Dispose();
 
@@ -76,9 +81,9 @@ namespace DataTableConsole
             pdt.Rows.Add(pdr);
             Console.WriteLine("Records=" + pdt.Rows.Count);
 
-            foreach (DataTableLibrary.DataRow r in pdt.Rows)
+            foreach (DataTableLibrary.DataRow row in pdt.Rows)
             {
-                Console.WriteLine(r["id"] + "," + r["name"]);
+                Console.WriteLine(row["id"] + "," + row["name"]);
             }
 
             try
@@ -89,10 +94,16 @@ namespace DataTableConsole
             catch { };
 
             DataTableLibrary.DataRow[] prs = pdt.Select();
-            foreach (DataTableLibrary.DataRow r in prs)
+            foreach (DataTableLibrary.DataRow row in prs)
             {
-                Console.WriteLine(r["id"] + "," + r["name"]);
+                Console.WriteLine(row["id"] + "," + row["name"]);
             }
+
+
+
+            pdt.Clear();    // Clears the datatable of all data
+
+            pdt.Close();    // Delete the datatable files
 
             pdt.Dispose();  // Need to agree if this deletes the datatable files
 
